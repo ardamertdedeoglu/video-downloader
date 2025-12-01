@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video İndirici</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #2a2a4a;
+            color: #fff;
+            outline: none;
+        }
+
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+
+        input[type="text"]:focus {
+            box-shadow: 0 0 0 2px #e94560;
+        }
+
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #ff6b6b;
+        }
+
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #4a4a6a;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #5a5a7a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .video-info {
+            background: #2a2a4a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .video-header {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .thumbnail {
+            width: 200px;
+            height: 112px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #1a1a2e;
+        }
+
+        .video-details h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .video-meta {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .video-meta span {
+            margin-right: 15px;
+        }
+
+        .format-section {
+            margin-top: 20px;
+        }
+
+        .format-section h3 {
+            margin-bottom: 15px;
+            font-size: 1rem;
+            color: #ccc;
+        }
+
+        .format-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .format-item {
+            padding: 12px 15px;
+            background: #3a3a5a;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .format-item:hover {
+            background: #4a4a6a;
+        }
+
+        .format-item.selected {
+            border-color: #e94560;
+            background: #4a4a6a;
+        }
+
+        .format-item .quality {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .format-item .ext {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .download-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: #1a1a2e;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .error {
+            background: #ff4444;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #44aa44;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .supported-sites {
+            margin-top: 40px;
+            padding: 20px;
+            background: #2a2a4a;
+            border-radius: 12px;
+        }
+
+        .supported-sites h3 {
+            margin-bottom: 15px;
+            font-size: 1rem;
+            color: #ccc;
+        }
+
+        .sites-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .site-tag {
+            padding: 5px 12px;
+            background: #3a3a5a;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        @media (max-width: 600px) {
+            .video-header {
+                flex-direction: column;
+            }
+
+            .thumbnail {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 16/9;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video İndirici</h1>
+        <p class="subtitle">YouTube ve diğer sitelerden video indirin</p>
+
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+
+        <div class="search-box">
+            <input type="text" id="urlInput" placeholder="Video URL'sini yapıştırın (örn: https://youtube.com/watch?v=...)">
+            <button class="btn-primary" id="fetchBtn" onclick="fetchVideoInfo()">Bilgi Al</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Video bilgileri alınıyor...</p>
+        </div>
+
+        <div class="video-info" id="videoInfo">
+            <div class="video-header">
+                <img class="thumbnail" id="thumbnail" src="" alt="Thumbnail">
+                <div class="video-details">
+                    <h2 id="videoTitle"></h2>
+                    <div class="video-meta">
+                        <span id="uploader"></span>
+                        <span id="duration"></span>
+                        <span id="views"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="format-section">
+                <h3>Format Seçin:</h3>
+                <div class="format-list" id="formatList"></div>
+            </div>
+
+            <div class="download-section">
+                <button class="btn-primary" id="downloadBtn" onclick="startDownload()">📥 İndir</button>
+            </div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Hazırlanıyor...</p>
+            </div>
+        </div>
+
+        <div class="supported-sites">
+            <h3>Desteklenen Siteler:</h3>
+            <div class="sites-list">
+                <span class="site-tag">YouTube</span>
+                <span class="site-tag">Twitter/X</span>
+                <span class="site-tag">Instagram</span>
+                <span class="site-tag">TikTok</span>
+                <span class="site-tag">Facebook</span>
+                <span class="site-tag">Vimeo</span>
+                <span class="site-tag">Dailymotion</span>
+                <span class="site-tag">Reddit</span>
+                <span class="site-tag">+ 1000'den fazla site</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUrl = '';
+        let selectedFormat = 'best';
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => errorEl.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const successEl = document.getElementById('success');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            setTimeout(() => successEl.style.display = 'none', 5000);
+        }
+
+        function formatFilesize(bytes) {
+            if (!bytes) return '';
+            if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB';
+            if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+            if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return bytes + ' B';
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return '';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatViews(count) {
+            if (!count) return '';
+            if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M görüntülenme';
+            if (count >= 1000) return (count / 1000).toFixed(1) + 'K görüntülenme';
+            return count + ' görüntülenme';
+        }
+
+        async function fetchVideoInfo() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                showError('Lütfen bir URL girin');
+                return;
+            }
+
+            currentUrl = url;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('videoInfo').style.display = 'none';
+            document.getElementById('fetchBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Bir hata oluştu');
+                }
+
+                displayVideoInfo(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('fetchBtn').disabled = false;
+            }
+        }
+
+        function displayVideoInfo(data) {
+            document.getElementById('thumbnail').src = data.thumbnail || '';
+            document.getElementById('videoTitle').textContent = data.title;
+            document.getElementById('uploader').textContent = data.uploader ? `👤 ${data.uploader}` : '';
+            document.getElementById('duration').textContent = data.duration ? `⏱️ ${formatDuration(data.duration)}` : '';
+            document.getElementById('views').textContent = data.view_count ? `👁️ ${formatViews(data.view_count)}` : '';
+
+            const formatList = document.getElementById('formatList');
+            formatList.innerHTML = '';
+
+            data.formats.forEach((format, index) => {
+                const div = document.createElement('div');
+                div.className = 'format-item' + (index === 0 ? ' selected' : '');
+                const sizeText = format.filesize ? ` (${formatFilesize(format.filesize)})` : '';
+                div.innerHTML = `
+                    <div class="quality">${format.quality}</div>
+                    <div class="ext">${format.ext.toUpperCase()}${sizeText}</div>
+                `;
+                div.onclick = () => selectFormat(format.format_id, div);
+                formatList.appendChild(div);
+            });
+
+            if (data.formats.length > 0) {
+                selectedFormat = data.formats[0].format_id;
+            }
+            document.getElementById('videoInfo').style.display = 'block';
+        }
+
+        function selectFormat(formatId, element) {
+            document.querySelectorAll('.format-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedFormat = formatId;
+        }
+
+        async function startDownload() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = '⏳ Hazırlanıyor...';
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Video hazırlanıyor...';
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: currentUrl, format_id: selectedFormat })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'İndirme başlatılamadı');
+                }
+
+                // İndirme durumunu takip et
+                checkDownloadStatus(data.download_id);
+
+            } catch (error) {
+                showError(error.message);
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = '📥 İndir';
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        async function checkDownloadStatus(downloadId) {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressContainer = document.getElementById('progressContainer');
+
+            try {
+                const response = await fetch(`/api/status/${downloadId}`);
+                const data = await response.json();
+
+                if (data.status === 'downloading') {
+                    progressFill.style.width = data.progress + '%';
+                    progressText.textContent = `İndiriliyor... %${data.progress}`;
+                    downloadBtn.textContent = `⏳ %${data.progress}`;
+                    setTimeout(() => checkDownloadStatus(downloadId), 500);
+                } else if (data.status === 'completed') {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Tamamlandı! Dosya indiriliyor...';
+                    
+                    // Dosyayı doğrudan indir (iframe ile, yeni sekme açmadan)
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = `/api/file/${downloadId}`;
+                    document.body.appendChild(iframe);
+                    
+                    // Temizlik
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 5000);
+                    
+                    showSuccess('Video başarıyla indirildi!');
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = '📥 İndir';
+                    
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                    }, 2000);
+                } else if (data.status === 'error') {
+                    throw new Error(data.error || 'İndirme başarısız');
+                }
+            } catch (error) {
+                showError(error.message);
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = '📥 İndir';
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        // Enter tuşu ile arama
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fetchVideoInfo();
+            }
+        });
+    </script>
+</body>
+</html>
