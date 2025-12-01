@@ -1,9 +1,9 @@
 # Python base image
 FROM python:3.11-slim
 
-# FFmpeg ve Node.js yükle
+# FFmpeg, Node.js ve npm yükle
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg nodejs && \
+    apt-get install -y --no-install-recommends ffmpeg nodejs npm curl && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
@@ -13,6 +13,9 @@ WORKDIR /app
 # Requirements kopyala ve yükle
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# yt-dlp'yi en son sürüme güncelle
+RUN pip install --upgrade yt-dlp
 
 # Uygulama dosyalarını kopyala
 COPY . .
