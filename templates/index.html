@@ -50,47 +50,50 @@
             font-size: 16px;
             background: #2a2a4a;
             color: #fff;
-            outline: none;
         }
 
         input[type="text"]::placeholder {
             color: #666;
         }
 
-        input[type="text"]:focus {
-            box-shadow: 0 0 0 2px #e94560;
-        }
-
-        button {
+        .btn-primary {
             padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 8px;
+            color: #fff;
             font-size: 16px;
             cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #e94560;
-            color: #fff;
+            transition: transform 0.2s, opacity 0.2s;
         }
 
         .btn-primary:hover {
-            background: #ff6b6b;
+            transform: translateY(-2px);
+            opacity: 0.9;
         }
 
         .btn-primary:disabled {
-            background: #555;
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
-        .btn-secondary {
-            background: #4a4a6a;
+        .error {
+            background: #ff4757;
             color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
         }
 
-        .btn-secondary:hover {
-            background: #5a5a7a;
+        .success {
+            background: #2ed573;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
         }
 
         .loading {
@@ -100,25 +103,24 @@
         }
 
         .spinner {
-            border: 4px solid #333;
-            border-top: 4px solid #e94560;
+            width: 50px;
+            height: 50px;
+            border: 4px solid #2a2a4a;
+            border-top-color: #667eea;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
         .video-info {
             background: #2a2a4a;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             display: none;
         }
 
@@ -133,7 +135,6 @@
             height: 112px;
             object-fit: cover;
             border-radius: 8px;
-            background: #1a1a2e;
         }
 
         .video-details h2 {
@@ -143,38 +144,32 @@
         }
 
         .video-meta {
+            display: flex;
+            gap: 15px;
             color: #888;
             font-size: 0.9rem;
-        }
-
-        .video-meta span {
-            margin-right: 15px;
-        }
-
-        .format-section {
-            margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .format-section h3 {
             margin-bottom: 15px;
-            font-size: 1rem;
-            color: #ccc;
+            color: #aaa;
         }
 
         .format-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px;
+            margin-bottom: 20px;
         }
 
         .format-item {
-            padding: 12px 15px;
             background: #3a3a5a;
+            padding: 15px;
             border-radius: 8px;
             cursor: pointer;
+            transition: all 0.2s;
             text-align: center;
-            transition: all 0.3s;
-            border: 2px solid transparent;
         }
 
         .format-item:hover {
@@ -182,8 +177,7 @@
         }
 
         .format-item.selected {
-            border-color: #e94560;
-            background: #4a4a6a;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .format-item .quality {
@@ -193,80 +187,57 @@
 
         .format-item .ext {
             font-size: 0.8rem;
-            color: #888;
+            color: #aaa;
+        }
+
+        .format-item.selected .ext {
+            color: #ddd;
         }
 
         .download-section {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
+            text-align: center;
         }
 
         .progress-container {
-            display: none;
             margin-top: 20px;
+            display: none;
         }
 
         .progress-bar {
-            width: 100%;
-            height: 24px;
             background: #1a1a2e;
-            border-radius: 12px;
+            border-radius: 10px;
+            height: 20px;
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             width: 0%;
             transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .progress-text {
             text-align: center;
             margin-top: 10px;
-            color: #aaa;
-            font-size: 0.9rem;
-        }
-
-        .error {
-            background: #ff4444;
-            color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success {
-            background: #44aa44;
-            color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
+            color: #888;
         }
 
         .supported-sites {
+            text-align: center;
             margin-top: 40px;
-            padding: 20px;
-            background: #2a2a4a;
-            border-radius: 12px;
         }
 
         .supported-sites h3 {
+            color: #666;
             margin-bottom: 15px;
-            font-size: 1rem;
-            color: #ccc;
+            font-weight: normal;
         }
 
         .sites-list {
             display: flex;
             flex-wrap: wrap;
+            justify-content: center;
             gap: 10px;
         }
 
@@ -278,109 +249,122 @@
             color: #aaa;
         }
 
-        /* Auth styles */
-        .auth-section {
+        /* Cookie Section */
+        .cookie-section {
+            background: #2a2a4a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .cookie-header {
             display: flex;
-            justify-content: flex-end;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .cookie-status {
+            display: flex;
+            align-items: center;
             gap: 10px;
-            align-items: center;
         }
 
-        .user-info {
-            color: #aaa;
-            font-size: 0.9rem;
+        .cookie-status.active {
+            color: #2ed573;
         }
 
-        .btn-google {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: #fff;
-            color: #333;
+        .cookie-status.inactive {
+            color: #888;
+        }
+
+        .cookie-upload-area {
+            border: 2px dashed #4a4a6a;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .btn-google:hover {
-            background: #f0f0f0;
-        }
-
-        .btn-logout {
-            padding: 10px 20px;
-            background: #4a4a6a;
-            color: #fff;
-            font-size: 14px;
-        }
-
-        .login-prompt {
-            background: #3a3a5a;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
+            padding: 30px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .login-prompt p {
-            margin-bottom: 10px;
-            color: #ccc;
+        .cookie-upload-area:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .cookie-upload-area input[type="file"] {
+            display: none;
+        }
+
+        .cookie-info {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .cookie-info a {
+            color: #667eea;
+        }
+
+        .btn-delete {
+            padding: 8px 16px;
+            background: #ff4757;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-delete:hover {
+            background: #ff6b7a;
         }
 
         @media (max-width: 600px) {
-            .video-header {
-                flex-direction: column;
-            }
-
-            .thumbnail {
-                width: 100%;
-                height: auto;
-                aspect-ratio: 16/9;
-            }
-
-            .search-box {
-                flex-direction: column;
-            }
+            h1 { font-size: 1.8rem; }
+            .search-box { flex-direction: column; }
+            .video-header { flex-direction: column; }
+            .thumbnail { width: 100%; height: auto; }
+            .format-list { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Auth Section -->
-        <div class="auth-section" id="authSection">
-            <span class="user-info" id="userInfo"></span>
-            <button class="btn btn-google" id="loginBtn" onclick="loginWithGoogle()">
-                <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                </svg>
-                Google ile Giriş Yap
-            </button>
-            <button class="btn btn-logout" id="logoutBtn" style="display:none;" onclick="logout()">
-                Çıkış Yap
-            </button>
-        </div>
-
-        <!-- Login Prompt for Age-Restricted Videos -->
-        <div class="login-prompt" id="loginPrompt">
-            <p>🔞 Bu video yaş kısıtlamalıdır. İndirmek için Google hesabınızla giriş yapmanız gerekiyor.</p>
-            <button class="btn btn-google" onclick="loginWithGoogle()">
-                <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                </svg>
-                Google ile Giriş Yap
-            </button>
-        </div>
-
         <h1>🎬 Video İndirici</h1>
         <p class="subtitle">YouTube ve diğer sitelerden video indirin</p>
+
+        <!-- Cookie Section -->
+        <div class="cookie-section">
+            <div class="cookie-header">
+                <div class="cookie-status" id="cookieStatus">
+                    <span>🍪 Cookie Durumu:</span>
+                    <strong id="cookieStatusText">Yüklenmedi</strong>
+                </div>
+                <button class="btn-delete" id="deleteCookieBtn" style="display:none;" onclick="deleteCookie()">
+                    🗑️ Cookie Sil
+                </button>
+            </div>
+            
+            <div class="cookie-upload-area" id="cookieUploadArea" onclick="document.getElementById('cookieFile').click()">
+                <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
+                <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
+                    +18 videolar için gerekli (Netscape formatında .txt dosyası)
+                </p>
+            </div>
+            
+            <div class="cookie-info">
+                <strong>Cookie dosyası nasıl alınır?</strong><br><br>
+                1. Tarayıcınıza <a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY</a> eklentisini yükleyin<br>
+                2. YouTube'a giriş yapın<br>
+                3. Eklenti ikonuna tıklayıp "Export" butonuna basın<br>
+                4. İndirilen .txt dosyasını buraya yükleyin
+            </div>
+        </div>
 
         <div class="error" id="error"></div>
         <div class="success" id="success"></div>
@@ -445,10 +429,89 @@
         let currentUrl = '';
         let selectedFormat = 'best';
 
+        // Cookie durumunu kontrol et
+        async function checkCookieStatus() {
+            try {
+                const response = await fetch('/api/cookie/status');
+                const data = await response.json();
+                updateCookieUI(data.has_cookies);
+            } catch (error) {
+                console.error('Cookie status check failed:', error);
+            }
+        }
+
+        function updateCookieUI(hasCookies) {
+            const statusEl = document.getElementById('cookieStatus');
+            const statusText = document.getElementById('cookieStatusText');
+            const deleteBtn = document.getElementById('deleteCookieBtn');
+            const uploadArea = document.getElementById('cookieUploadArea');
+
+            if (hasCookies) {
+                statusEl.className = 'cookie-status active';
+                statusText.textContent = '✅ Yüklendi';
+                deleteBtn.style.display = 'block';
+                uploadArea.innerHTML = `
+                    <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
+                    <p>✅ Cookie dosyası yüklü</p>
+                    <p style="font-size: 0.85rem; color: #2ed573; margin-top: 10px;">
+                        +18 videolara erişebilirsiniz
+                    </p>
+                `;
+            } else {
+                statusEl.className = 'cookie-status inactive';
+                statusText.textContent = 'Yüklenmedi';
+                deleteBtn.style.display = 'none';
+                uploadArea.innerHTML = `
+                    <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
+                    <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
+                        +18 videolar için gerekli (Netscape formatında .txt dosyası)
+                    </p>
+                `;
+            }
+        }
+
+        async function uploadCookie(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('cookie_file', file);
+
+            try {
+                const response = await fetch('/api/cookie/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('Cookie dosyası başarıyla yüklendi!');
+                    updateCookieUI(true);
+                } else {
+                    showError(data.error || 'Cookie yüklenirken hata oluştu');
+                }
+            } catch (error) {
+                showError('Cookie yüklenirken hata oluştu: ' + error.message);
+            }
+        }
+
+        async function deleteCookie() {
+            try {
+                await fetch('/api/cookie/delete', { method: 'POST' });
+                showSuccess('Cookie silindi');
+                updateCookieUI(false);
+            } catch (error) {
+                showError('Cookie silinirken hata oluştu');
+            }
+        }
+
         function showError(message) {
             const errorEl = document.getElementById('error');
             errorEl.textContent = message;
             errorEl.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
             setTimeout(() => errorEl.style.display = 'none', 5000);
         }
 
@@ -456,15 +519,8 @@
             const successEl = document.getElementById('success');
             successEl.textContent = message;
             successEl.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
             setTimeout(() => successEl.style.display = 'none', 5000);
-        }
-
-        function formatFilesize(bytes) {
-            if (!bytes) return '';
-            if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB';
-            if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
-            if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return bytes + ' B';
         }
 
         function formatDuration(seconds) {
@@ -480,54 +536,6 @@
             if (count >= 1000) return (count / 1000).toFixed(1) + 'K görüntülenme';
             return count + ' görüntülenme';
         }
-
-        // OAuth Functions
-        let isLoggedIn = false;
-
-        async function checkAuthStatus() {
-            try {
-                const response = await fetch('/oauth/status');
-                const data = await response.json();
-                isLoggedIn = data.logged_in;
-                updateAuthUI(data);
-            } catch (error) {
-                console.error('Auth status check failed:', error);
-            }
-        }
-
-        function updateAuthUI(data) {
-            const loginBtn = document.getElementById('loginBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const userInfo = document.getElementById('userInfo');
-
-            if (data.logged_in) {
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'block';
-                userInfo.textContent = data.email ? `✅ ${data.email}` : '✅ Giriş yapıldı';
-            } else {
-                loginBtn.style.display = 'flex';
-                logoutBtn.style.display = 'none';
-                userInfo.textContent = '';
-            }
-        }
-
-        function loginWithGoogle() {
-            window.location.href = '/oauth/login';
-        }
-
-        async function logout() {
-            try {
-                await fetch('/oauth/logout', { method: 'POST' });
-                isLoggedIn = false;
-                updateAuthUI({ logged_in: false });
-                showSuccess('Çıkış yapıldı');
-            } catch (error) {
-                showError('Çıkış yapılırken hata oluştu');
-            }
-        }
-
-        // Check auth status on page load
-        checkAuthStatus();
 
         async function fetchVideoInfo() {
             const url = document.getElementById('urlInput').value.trim();
@@ -551,7 +559,12 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Bir hata oluştu');
+                    if (data.requires_cookies) {
+                        showError('Bu video yaş kısıtlamalı. Lütfen yukarıdan cookie dosyanızı yükleyin.');
+                    } else {
+                        throw new Error(data.error || 'Bir hata oluştu');
+                    }
+                    return;
                 }
 
                 displayVideoInfo(data);
@@ -576,10 +589,9 @@
             data.formats.forEach((format, index) => {
                 const div = document.createElement('div');
                 div.className = 'format-item' + (index === 0 ? ' selected' : '');
-                const sizeText = format.filesize ? ` (${formatFilesize(format.filesize)})` : '';
                 div.innerHTML = `
                     <div class="quality">${format.quality}</div>
-                    <div class="ext">${format.ext.toUpperCase()}${sizeText}</div>
+                    <div class="ext">${format.ext.toUpperCase()}</div>
                 `;
                 div.onclick = () => selectFormat(format.format_id, div);
                 formatList.appendChild(div);
@@ -622,7 +634,6 @@
                     throw new Error(data.error || 'İndirme başlatılamadı');
                 }
 
-                // İndirme durumunu takip et
                 checkDownloadStatus(data.download_id);
 
             } catch (error) {
@@ -646,32 +657,26 @@
                 if (data.status === 'downloading') {
                     progressFill.style.width = data.progress + '%';
                     progressText.textContent = `İndiriliyor... %${data.progress}`;
-                    downloadBtn.textContent = `⏳ %${data.progress}`;
-                    setTimeout(() => checkDownloadStatus(downloadId), 500);
+                    setTimeout(() => checkDownloadStatus(downloadId), 1000);
                 } else if (data.status === 'completed') {
                     progressFill.style.width = '100%';
-                    progressText.textContent = 'Tamamlandı! Dosya indiriliyor...';
+                    progressText.textContent = 'İndirme tamamlandı! Dosya indiriliyor...';
                     
-                    // Dosyayı doğrudan indir (iframe ile, yeni sekme açmadan)
+                    // Dosyayı indir
                     const iframe = document.createElement('iframe');
                     iframe.style.display = 'none';
                     iframe.src = `/api/file/${downloadId}`;
                     document.body.appendChild(iframe);
                     
-                    // Temizlik
                     setTimeout(() => {
                         document.body.removeChild(iframe);
-                    }, 5000);
-                    
-                    showSuccess('Video başarıyla indirildi!');
-                    downloadBtn.disabled = false;
-                    downloadBtn.textContent = '📥 İndir';
-                    
-                    setTimeout(() => {
+                        downloadBtn.disabled = false;
+                        downloadBtn.textContent = '📥 İndir';
                         progressContainer.style.display = 'none';
-                    }, 2000);
+                        showSuccess('Video başarıyla indirildi!');
+                    }, 3000);
                 } else if (data.status === 'error') {
-                    throw new Error(data.error || 'İndirme başarısız');
+                    throw new Error(data.error || 'İndirme sırasında hata oluştu');
                 }
             } catch (error) {
                 showError(error.message);
@@ -680,6 +685,9 @@
                 progressContainer.style.display = 'none';
             }
         }
+
+        // Sayfa yüklendiğinde cookie durumunu kontrol et
+        checkCookieStatus();
 
         // Enter tuşu ile arama
         document.getElementById('urlInput').addEventListener('keypress', function(e) {

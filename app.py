@@ -1,28 +1,16 @@
-from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for
+from flask import Flask, render_template, request, jsonify, send_file, session
 import yt_dlp
 import os
 import uuid
 import threading
 import re
-import json
-import requests
-from urllib.parse import urlencode
 import sys
 
 print("[DEBUG] Starting app initialization...", file=sys.stderr)
-print(f"[DEBUG] Python version: {sys.version}", file=sys.stderr)
-print(f"[DEBUG] Current directory: {os.getcwd()}", file=sys.stderr)
-print(f"[DEBUG] Directory contents: {os.listdir('.')}", file=sys.stderr)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-
-print("[DEBUG] Flask app created successfully", file=sys.stderr)
-
-# OAuth ayarları
-GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
-GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-OAUTH_REDIRECT_URI = os.environ.get('OAUTH_REDIRECT_URI', 'http://localhost:5000/oauth/callback')
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1MB max cookie file
 
 # Download klasörü
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
@@ -46,8 +34,10 @@ download_status = {}
 # Ortam tespiti
 IS_SERVER = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('FLY_APP_NAME')
 
-def get_ydl_opts(access_token=None):
-    """Kullanıcıya özel yt-dlp ayarları"""
+print(f"[DEBUG] IS_SERVER: {IS_SERVER}", file=sys.stderr)
+
+def get_ydl_opts(cookie_file=None):
+    """yt-dlp ayarları"""
     opts = {
         'quiet': True,
         'no_warnings': True,
@@ -55,17 +45,17 @@ def get_ydl_opts(access_token=None):
         'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
     }
     
-    # OAuth token varsa kullan
-    if access_token:
-        # yt-dlp OAuth token desteği
-        opts['username'] = 'oauth2'
-        opts['password'] = access_token
+    # Cookie dosyası varsa kullan
+    if cookie_file and os.path.exists(cookie_file):
+        opts['cookiefile'] = cookie_file
+        print(f"[DEBUG] Using cookie file: {cookie_file}", file=sys.stderr)
     
     # Yerel ortamda tarayıcı cookie'si kullan
-    if not IS_SERVER and not access_token:
+    elif not IS_SERVER:
         for browser in ['firefox', 'chrome', 'edge', 'brave']:
             try:
                 opts['cookiesfrombrowser'] = (browser,)
+                print(f"[DEBUG] Using browser cookies: {browser}", file=sys.stderr)
                 break
             except:
                 continue
@@ -76,15 +66,14 @@ def sanitize_filename(filename):
     """Dosya adından geçersiz karakterleri temizle"""
     return re.sub(r'[<>:"/\\|?*]', '', filename)
 
-def get_video_info(url, access_token=None):
+def get_video_info(url, cookie_file=None):
     """Video bilgilerini al"""
-    ydl_opts = get_ydl_opts(access_token)
+    ydl_opts = get_ydl_opts(cookie_file)
     ydl_opts['extract_flat'] = False
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         
-        # Sabit kalite seçenekleri
         formats = [
             {'format_id': 'best', 'quality': 'En İyi Kalite', 'ext': 'mp4', 'type': 'video+audio'},
             {'format_id': '1080p', 'quality': '1080p (Full HD)', 'ext': 'mp4', 'type': 'video+audio'},
@@ -104,7 +93,7 @@ def get_video_info(url, access_token=None):
             'age_restricted': info.get('age_limit', 0) >= 18
         }
 
-def download_video(url, format_id, download_id, access_token=None):
+def download_video(url, format_id, download_id, cookie_file=None):
     """Video indir"""
     download_status[download_id] = {'status': 'downloading', 'progress': 0, 'filename': None}
     
@@ -130,7 +119,7 @@ def download_video(url, format_id, download_id, access_token=None):
     
     format_string = format_map.get(format_id, format_map['best'])
     
-    ydl_opts = get_ydl_opts(access_token)
+    ydl_opts = get_ydl_opts(cookie_file)
     ydl_opts.update({
         'format': format_string,
         'outtmpl': output_template,
@@ -154,101 +143,77 @@ def download_video(url, format_id, download_id, access_token=None):
         download_status[download_id]['status'] = 'error'
         download_status[download_id]['error'] = str(e)
 
-# ============ OAuth Routes ============
+# ============ Cookie Upload Routes ============
 
-@app.route('/oauth/login')
-def oauth_login():
-    """Google OAuth ile giriş başlat"""
-    if not GOOGLE_CLIENT_ID:
-        return jsonify({'error': 'OAuth yapılandırılmamış'}), 500
+@app.route('/api/cookie/upload', methods=['POST'])
+def upload_cookie():
+    """Cookie dosyası yükle"""
+    if 'cookie_file' not in request.files:
+        return jsonify({'error': 'Cookie dosyası gerekli'}), 400
     
-    state = str(uuid.uuid4())
-    session['oauth_state'] = state
+    file = request.files['cookie_file']
+    if file.filename == '':
+        return jsonify({'error': 'Dosya seçilmedi'}), 400
     
-    params = {
-        'client_id': GOOGLE_CLIENT_ID,
-        'redirect_uri': OAUTH_REDIRECT_URI,
-        'response_type': 'code',
-        'scope': 'https://www.googleapis.com/auth/youtube.readonly email profile',
-        'access_type': 'offline',
-        'prompt': 'consent',
-        'state': state
-    }
+    # Session ID oluştur veya mevcut olanı kullan
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
     
-    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-    return redirect(auth_url)
-
-@app.route('/oauth/callback')
-def oauth_callback():
-    """OAuth callback"""
-    error = request.args.get('error')
-    if error:
-        return redirect(f'/?error={error}')
-    
-    code = request.args.get('code')
-    state = request.args.get('state')
-    
-    if state != session.get('oauth_state'):
-        return redirect('/?error=invalid_state')
-    
-    token_url = 'https://oauth2.googleapis.com/token'
-    token_data = {
-        'client_id': GOOGLE_CLIENT_ID,
-        'client_secret': GOOGLE_CLIENT_SECRET,
-        'code': code,
-        'grant_type': 'authorization_code',
-        'redirect_uri': OAUTH_REDIRECT_URI
-    }
+    session_id = session['session_id']
+    cookie_path = os.path.join(COOKIE_FOLDER, f'{session_id}.txt')
     
     try:
-        token_response = requests.post(token_url, data=token_data)
-        tokens = token_response.json()
+        content = file.read().decode('utf-8')
         
-        if 'error' in tokens:
-            return redirect(f'/?error={tokens["error"]}')
+        # Netscape cookie formatını kontrol et
+        if '# Netscape HTTP Cookie File' not in content and '.youtube.com' not in content:
+            return jsonify({'error': 'Geçersiz cookie dosyası formatı. Netscape formatında olmalı.'}), 400
         
-        access_token = tokens.get('access_token')
+        with open(cookie_path, 'w') as f:
+            f.write(content)
         
-        user_info_response = requests.get(
-            'https://www.googleapis.com/oauth2/v2/userinfo',
-            headers={'Authorization': f'Bearer {access_token}'}
-        )
-        user_info = user_info_response.json()
+        session['has_cookies'] = True
+        print(f"[DEBUG] Cookie uploaded for session: {session_id}", file=sys.stderr)
         
-        user_id = user_info.get('id', str(uuid.uuid4()))
-        
-        session['user_id'] = user_id
-        session['user_email'] = user_info.get('email', '')
-        session['user_name'] = user_info.get('name', '')
-        session['access_token'] = access_token
-        session['logged_in'] = True
-        
-        print(f"[DEBUG] OAuth successful for user: {user_info.get('email', 'unknown')}", file=sys.stderr)
-        
-        return redirect('/')
-        
+        return jsonify({'success': True, 'message': 'Cookie dosyası başarıyla yüklendi'})
     except Exception as e:
-        print(f"[DEBUG] OAuth error: {str(e)}", file=sys.stderr)
-        return redirect(f'/?error={str(e)}')
+        return jsonify({'error': f'Cookie yüklenirken hata: {str(e)}'}), 500
 
-@app.route('/oauth/logout', methods=['GET', 'POST'])
-def oauth_logout():
-    """Çıkış yap"""
-    session.clear()
-    if request.method == 'POST':
-        return jsonify({'success': True})
-    return redirect('/')
+@app.route('/api/cookie/status')
+def cookie_status():
+    """Cookie durumunu kontrol et"""
+    session_id = session.get('session_id')
+    has_cookies = False
+    
+    if session_id:
+        cookie_path = os.path.join(COOKIE_FOLDER, f'{session_id}.txt')
+        has_cookies = os.path.exists(cookie_path)
+    
+    return jsonify({
+        'has_cookies': has_cookies,
+        'session_id': session_id
+    })
 
-@app.route('/oauth/status')
-def auth_status():
-    """Kullanıcı giriş durumu"""
-    if session.get('logged_in'):
-        return jsonify({
-            'logged_in': True,
-            'user_name': session.get('user_name', ''),
-            'email': session.get('user_email', '')
-        })
-    return jsonify({'logged_in': False})
+@app.route('/api/cookie/delete', methods=['POST'])
+def delete_cookie():
+    """Cookie dosyasını sil"""
+    session_id = session.get('session_id')
+    if session_id:
+        cookie_path = os.path.join(COOKIE_FOLDER, f'{session_id}.txt')
+        if os.path.exists(cookie_path):
+            os.remove(cookie_path)
+    
+    session.pop('has_cookies', None)
+    return jsonify({'success': True})
+
+def get_user_cookie_file():
+    """Kullanıcının cookie dosyasını al"""
+    session_id = session.get('session_id')
+    if session_id:
+        cookie_path = os.path.join(COOKIE_FOLDER, f'{session_id}.txt')
+        if os.path.exists(cookie_path):
+            return cookie_path
+    return None
 
 # ============ Main Routes ============
 
@@ -270,18 +235,18 @@ def get_info():
     if not url:
         return jsonify({'error': 'URL gerekli'}), 400
     
-    access_token = session.get('access_token')
+    cookie_file = get_user_cookie_file()
     
     try:
-        info = get_video_info(url, access_token)
-        info['logged_in'] = session.get('logged_in', False)
+        info = get_video_info(url, cookie_file)
+        info['has_cookies'] = session.get('has_cookies', False)
         return jsonify(info)
     except Exception as e:
         error_msg = str(e)
         if 'Sign in to confirm your age' in error_msg or 'age' in error_msg.lower():
             return jsonify({
-                'error': 'Bu video yaş kısıtlamalı. İndirmek için Google ile giriş yapın.',
-                'requires_login': True
+                'error': 'Bu video yaş kısıtlamalı. Lütfen cookie dosyanızı yükleyin.',
+                'requires_cookies': True
             }), 403
         return jsonify({'error': error_msg}), 400
 
@@ -296,9 +261,9 @@ def start_download():
         return jsonify({'error': 'URL gerekli'}), 400
     
     download_id = str(uuid.uuid4())[:8]
-    access_token = session.get('access_token')
+    cookie_file = get_user_cookie_file()
     
-    thread = threading.Thread(target=download_video, args=(url, format_id, download_id, access_token))
+    thread = threading.Thread(target=download_video, args=(url, format_id, download_id, cookie_file))
     thread.start()
     
     return jsonify({'download_id': download_id})
@@ -327,15 +292,13 @@ def get_file(download_id):
     if not os.path.exists(filepath):
         return jsonify({'error': 'Dosya bulunamadı'}), 404
     
-    # Dosya adından download_id'yi çıkar
     clean_filename = sanitize_filename(filename[len(download_id)+1:])
     
     response = send_file(filepath, as_attachment=True, download_name=clean_filename)
     
-    # İndirme tamamlandıktan sonra dosyayı sil (arka planda)
     def cleanup():
         import time
-        time.sleep(60)  # 1 dakika bekle
+        time.sleep(60)
         try:
             os.remove(filepath)
             if download_id in download_status:
