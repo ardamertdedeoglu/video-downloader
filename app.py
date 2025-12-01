@@ -52,9 +52,6 @@ def get_ydl_opts(cookie_file=None):
             print(f"[DEBUG] Using cookie file: {cookie_file}", file=sys.stderr)
         else:
             print(f"[DEBUG] Cookie file path provided but file not found: {cookie_file}", file=sys.stderr)
-    else:
-        print(f"[DEBUG] No cookie file provided to get_ydl_opts", file=sys.stderr)
-    
     # Yerel ortamda tarayıcı cookie'si kullan
     elif not IS_SERVER:
         for browser in ['firefox', 'chrome', 'edge', 'brave']:
@@ -64,6 +61,9 @@ def get_ydl_opts(cookie_file=None):
                 break
             except:
                 continue
+    else:
+        print(f"[DEBUG] No cookie file provided to get_ydl_opts", file=sys.stderr)
+
     
     return opts
 
