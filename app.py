@@ -15,16 +15,27 @@ if not os.path.exists(DOWNLOAD_FOLDER):
 # İndirme durumlarını takip etmek için
 download_status = {}
 
+# Ortam tespiti - sunucuda mı yoksa yerel mi?
+IS_SERVER = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('FLY_APP_NAME') or not os.path.exists(os.path.expanduser('~/.mozilla/firefox'))
+
 # yt-dlp ortak ayarları
 YDL_OPTS_BASE = {
     'quiet': True,
     'no_warnings': True,
-    # +18 video bypass seçenekleri
     'age_limit': None,
-    'cookiesfrombrowser': ('firefox',),
     # YouTube JS challenge çözümü
     'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
 }
+
+# Yerel ortamda cookie kullan (sadece +18 videolar için gerekli)
+if not IS_SERVER:
+    # Windows'ta farklı tarayıcıları dene
+    for browser in ['firefox', 'chrome', 'edge', 'brave']:
+        try:
+            YDL_OPTS_BASE['cookiesfrombrowser'] = (browser,)
+            break
+        except:
+            continue
 
 def sanitize_filename(filename):
     """Dosya adından geçersiz karakterleri temizle"""
