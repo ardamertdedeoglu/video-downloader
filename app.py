@@ -108,13 +108,14 @@ def download_video(url, format_id, download_id, cookie_file=None):
 
     output_template = os.path.join(DOWNLOAD_FOLDER, f'{download_id}_%(title)s.%(ext)s')
     
+    # Daha esnek format seçenekleri - fallback'lerle birlikte
     format_map = {
-        'best': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
-        '1080p': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best',
-        '720p': 'bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best',
-        '480p': 'bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=480]+bestaudio/best',
-        '360p': 'bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=360]+bestaudio/best',
-        'bestaudio': 'bestaudio[ext=m4a]/bestaudio/best',
+        'best': 'bv*+ba/b',  # En iyi video + en iyi ses veya en iyi combined
+        '1080p': 'bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b',
+        '720p': 'bv*[height<=720]+ba/b[height<=720]/bv*+ba/b',
+        '480p': 'bv*[height<=480]+ba/b[height<=480]/bv*+ba/b',
+        '360p': 'bv*[height<=360]+ba/b[height<=360]/bv*+ba/b',
+        'bestaudio': 'ba/b',  # En iyi ses
     }
     
     format_string = format_map.get(format_id, format_map['best'])
