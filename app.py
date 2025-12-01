@@ -108,14 +108,14 @@ def download_video(url, format_id, download_id, cookie_file=None):
 
     output_template = os.path.join(DOWNLOAD_FOLDER, f'{download_id}_%(title)s.%(ext)s')
     
-    # Daha esnek format seçenekleri - fallback'lerle birlikte
+    # Format seçenekleri - FFmpeg ile birleştirme yapılacak
     format_map = {
-        'best': 'bv*+ba/b',  # En iyi video + en iyi ses veya en iyi combined
-        '1080p': 'bv*[height<=1080]+ba/b[height<=1080]/bv*+ba/b',
-        '720p': 'bv*[height<=720]+ba/b[height<=720]/bv*+ba/b',
-        '480p': 'bv*[height<=480]+ba/b[height<=480]/bv*+ba/b',
-        '360p': 'bv*[height<=360]+ba/b[height<=360]/bv*+ba/b',
-        'bestaudio': 'ba/b',  # En iyi ses
+        'best': 'bestvideo+bestaudio/best',
+        '1080p': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best',
+        '720p': 'bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best',
+        '480p': 'bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best',
+        '360p': 'bestvideo[height<=360]+bestaudio/best[height<=360]/bestvideo+bestaudio/best',
+        'bestaudio': 'bestaudio/best',
     }
     
     format_string = format_map.get(format_id, format_map['best'])
@@ -126,6 +126,13 @@ def download_video(url, format_id, download_id, cookie_file=None):
         'outtmpl': output_template,
         'progress_hooks': [progress_hook],
         'merge_output_format': 'mp4',
+        'postprocessors': [{
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': 'mp4',
+        }],
+        # FFmpeg ayarları
+        'prefer_ffmpeg': True,
+        'keepvideo': False,
     })
     
     try:
