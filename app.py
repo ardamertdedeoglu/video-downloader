@@ -74,6 +74,12 @@ def get_video_info(url, cookie_file=None):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
         
+        # Mevcut formatları logla
+        available_formats = info.get('formats', [])
+        print(f"[DEBUG] Available formats count: {len(available_formats)}", file=sys.stderr)
+        for f in available_formats[:5]:  # İlk 5 formatı göster
+            print(f"[DEBUG] Format: {f.get('format_id')} - {f.get('ext')} - {f.get('height')}p", file=sys.stderr)
+        
         formats = [
             {'format_id': 'best', 'quality': 'En İyi Kalite', 'ext': 'mp4', 'type': 'video+audio'},
             {'format_id': '1080p', 'quality': '1080p (Full HD)', 'ext': 'mp4', 'type': 'video+audio'},
@@ -108,17 +114,21 @@ def download_video(url, format_id, download_id, cookie_file=None):
 
     output_template = os.path.join(DOWNLOAD_FOLDER, f'{download_id}_%(title)s.%(ext)s')
     
-    # Format seçenekleri - FFmpeg ile birleştirme yapılacak
-    format_map = {
-        'best': 'bestvideo+bestaudio/best',
-        '1080p': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best',
-        '720p': 'bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best',
-        '480p': 'bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best',
-        '360p': 'bestvideo[height<=360]+bestaudio/best[height<=360]/bestvideo+bestaudio/best',
-        'bestaudio': 'bestaudio/best',
-    }
+    # Basitleştirilmiş format seçenekleri
+    if format_id == 'bestaudio':
+        format_string = 'bestaudio/best'
+    elif format_id == '1080p':
+        format_string = 'best[height<=1080]/bestvideo[height<=1080]+bestaudio/best'
+    elif format_id == '720p':
+        format_string = 'best[height<=720]/bestvideo[height<=720]+bestaudio/best'
+    elif format_id == '480p':
+        format_string = 'best[height<=480]/bestvideo[height<=480]+bestaudio/best'
+    elif format_id == '360p':
+        format_string = 'best[height<=360]/bestvideo[height<=360]+bestaudio/best'
+    else:  # best
+        format_string = 'best/bestvideo+bestaudio'
     
-    format_string = format_map.get(format_id, format_map['best'])
+    print(f"[DEBUG] Using format string: {format_string}", file=sys.stderr)
     
     ydl_opts = get_ydl_opts(cookie_file)
     ydl_opts.update({
@@ -126,13 +136,11 @@ def download_video(url, format_id, download_id, cookie_file=None):
         'outtmpl': output_template,
         'progress_hooks': [progress_hook],
         'merge_output_format': 'mp4',
-        'postprocessors': [{
-            'key': 'FFmpegVideoConvertor',
-            'preferedformat': 'mp4',
-        }],
         # FFmpeg ayarları
         'prefer_ffmpeg': True,
-        'keepvideo': False,
+        'postprocessor_args': {
+            'ffmpeg': ['-c:v', 'copy', '-c:a', 'aac']
+        },
     })
     
     try:
