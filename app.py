@@ -42,7 +42,7 @@ def get_ydl_opts(cookie_file=None):
         'quiet': True,
         'no_warnings': True,
         'age_limit': None,
-        'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
+        # 'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
     }
     
     # Cookie dosyası varsa kullan
@@ -101,6 +101,7 @@ def get_video_info(url, cookie_file=None):
 
 def download_video(url, format_id, download_id, cookie_file=None):
     """Video indir"""
+    print(f"[DEBUG] Starting download for {download_id} with cookie: {cookie_file}", file=sys.stderr)
     download_status[download_id] = {'status': 'downloading', 'progress': 0, 'filename': None}
     
     def progress_hook(d):
@@ -118,15 +119,15 @@ def download_video(url, format_id, download_id, cookie_file=None):
     if format_id == 'bestaudio':
         format_string = 'bestaudio/best'
     elif format_id == '1080p':
-        format_string = 'best[height<=1080]/bestvideo[height<=1080]+bestaudio/best'
+        format_string = 'bv*[height<=1080]+ba/b[height<=1080]/b'
     elif format_id == '720p':
-        format_string = 'best[height<=720]/bestvideo[height<=720]+bestaudio/best'
+        format_string = 'bv*[height<=720]+ba/b[height<=720]/b'
     elif format_id == '480p':
-        format_string = 'best[height<=480]/bestvideo[height<=480]+bestaudio/best'
+        format_string = 'bv*[height<=480]+ba/b[height<=480]/b'
     elif format_id == '360p':
-        format_string = 'best[height<=360]/bestvideo[height<=360]+bestaudio/best'
+        format_string = 'bv*[height<=360]+ba/b[height<=360]/b'
     else:  # best
-        format_string = 'best/bestvideo+bestaudio'
+        format_string = 'bv*+ba/b'
     
     print(f"[DEBUG] Using format string: {format_string}", file=sys.stderr)
     
