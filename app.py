@@ -1,52 +1,71 @@
-from flask import Flask, render_template, request, jsonify, send_file, Response
+from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for
 import yt_dlp
 import os
 import uuid
 import threading
 import re
+import json
+import requests
+from urllib.parse import urlencode
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# OAuth ayarları
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+OAUTH_REDIRECT_URI = os.environ.get('OAUTH_REDIRECT_URI', 'http://localhost:5000/oauth/callback')
 
 # Download klasörü
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
 
+# Cookie dosyası klasörü
+COOKIE_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies')
+if not os.path.exists(COOKIE_FOLDER):
+    os.makedirs(COOKIE_FOLDER)
+
 # İndirme durumlarını takip etmek için
 download_status = {}
 
-# Ortam tespiti - sunucuda mı yoksa yerel mi?
-IS_SERVER = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('FLY_APP_NAME') or not os.path.exists(os.path.expanduser('~/.mozilla/firefox'))
+# Ortam tespiti
+IS_SERVER = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('FLY_APP_NAME')
 
-# yt-dlp ortak ayarları
-YDL_OPTS_BASE = {
-    'quiet': True,
-    'no_warnings': True,
-    'age_limit': None,
-    # YouTube JS challenge çözümü
-    'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
-}
-
-# Yerel ortamda cookie kullan (sadece +18 videolar için gerekli)
-if not IS_SERVER:
-    # Windows'ta farklı tarayıcıları dene
-    for browser in ['firefox', 'chrome', 'edge', 'brave']:
-        try:
-            YDL_OPTS_BASE['cookiesfrombrowser'] = (browser,)
-            break
-        except:
-            continue
+def get_ydl_opts(user_id=None):
+    """Kullanıcıya özel yt-dlp ayarları"""
+    opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'age_limit': None,
+        'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
+    }
+    
+    # Kullanıcı giriş yapmışsa cookie dosyasını kullan
+    if user_id:
+        cookie_file = os.path.join(COOKIE_FOLDER, f'{user_id}.txt')
+        if os.path.exists(cookie_file):
+            opts['cookiefile'] = cookie_file
+    
+    # Yerel ortamda tarayıcı cookie'si kullan
+    if not IS_SERVER:
+        for browser in ['firefox', 'chrome', 'edge', 'brave']:
+            try:
+                opts['cookiesfrombrowser'] = (browser,)
+                break
+            except:
+                continue
+    
+    return opts
 
 def sanitize_filename(filename):
     """Dosya adından geçersiz karakterleri temizle"""
     return re.sub(r'[<>:"/\\|?*]', '', filename)
 
-def get_video_info(url):
+def get_video_info(url, user_id=None):
     """Video bilgilerini al"""
-    ydl_opts = {
-        **YDL_OPTS_BASE,
-        'extract_flat': False,
-    }
+    ydl_opts = get_ydl_opts(user_id)
+    ydl_opts['extract_flat'] = False
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
@@ -67,10 +86,11 @@ def get_video_info(url):
             'duration': info.get('duration'),
             'uploader': info.get('uploader', 'Bilinmeyen'),
             'view_count': info.get('view_count'),
-            'formats': formats
+            'formats': formats,
+            'age_restricted': info.get('age_limit', 0) >= 18
         }
 
-def download_video(url, format_id, download_id):
+def download_video(url, format_id, download_id, user_id=None):
     """Video indir"""
     download_status[download_id] = {'status': 'downloading', 'progress': 0, 'filename': None}
     
@@ -85,7 +105,6 @@ def download_video(url, format_id, download_id):
 
     output_template = os.path.join(DOWNLOAD_FOLDER, f'{download_id}_%(title)s.%(ext)s')
     
-    # Kalite bazlı format seçimi
     format_map = {
         'best': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
         '1080p': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best',
@@ -97,19 +116,18 @@ def download_video(url, format_id, download_id):
     
     format_string = format_map.get(format_id, format_map['best'])
     
-    ydl_opts = {
-        **YDL_OPTS_BASE,
+    ydl_opts = get_ydl_opts(user_id)
+    ydl_opts.update({
         'format': format_string,
         'outtmpl': output_template,
         'progress_hooks': [progress_hook],
         'merge_output_format': 'mp4',
-    }
+    })
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         
-        # İndirilen dosyayı bul
         for filename in os.listdir(DOWNLOAD_FOLDER):
             if filename.startswith(download_id):
                 download_status[download_id]['status'] = 'completed'
@@ -121,6 +139,124 @@ def download_video(url, format_id, download_id):
     except Exception as e:
         download_status[download_id]['status'] = 'error'
         download_status[download_id]['error'] = str(e)
+
+# ============ OAuth Routes ============
+
+@app.route('/oauth/login')
+def oauth_login():
+    """Google OAuth ile giriş başlat"""
+    if not GOOGLE_CLIENT_ID:
+        return jsonify({'error': 'OAuth yapılandırılmamış'}), 500
+    
+    state = str(uuid.uuid4())
+    session['oauth_state'] = state
+    
+    params = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': OAUTH_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'https://www.googleapis.com/auth/youtube.readonly email profile',
+        'access_type': 'offline',
+        'prompt': 'consent',
+        'state': state
+    }
+    
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    return redirect(auth_url)
+
+@app.route('/oauth/callback')
+def oauth_callback():
+    """OAuth callback"""
+    error = request.args.get('error')
+    if error:
+        return redirect(f'/?error={error}')
+    
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    if state != session.get('oauth_state'):
+        return redirect('/?error=invalid_state')
+    
+    token_url = 'https://oauth2.googleapis.com/token'
+    token_data = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'client_secret': GOOGLE_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': OAUTH_REDIRECT_URI
+    }
+    
+    try:
+        token_response = requests.post(token_url, data=token_data)
+        tokens = token_response.json()
+        
+        if 'error' in tokens:
+            return redirect(f'/?error={tokens["error"]}')
+        
+        access_token = tokens.get('access_token')
+        
+        user_info_response = requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'}
+        )
+        user_info = user_info_response.json()
+        
+        user_id = user_info.get('id', str(uuid.uuid4()))
+        
+        session['user_id'] = user_id
+        session['user_email'] = user_info.get('email', '')
+        session['user_name'] = user_info.get('name', '')
+        session['access_token'] = access_token
+        session['logged_in'] = True
+        
+        # Cookie dosyası oluştur
+        cookie_file = os.path.join(COOKIE_FOLDER, f'{user_id}.txt')
+        create_youtube_cookie_file(cookie_file, access_token)
+        
+        return redirect('/')
+        
+    except Exception as e:
+        return redirect(f'/?error={str(e)}')
+
+@app.route('/oauth/logout', methods=['GET', 'POST'])
+def oauth_logout():
+    """Çıkış yap"""
+    user_id = session.get('user_id')
+    if user_id:
+        cookie_file = os.path.join(COOKIE_FOLDER, f'{user_id}.txt')
+        if os.path.exists(cookie_file):
+            os.remove(cookie_file)
+    
+    session.clear()
+    if request.method == 'POST':
+        return jsonify({'success': True})
+    return redirect('/')
+
+@app.route('/oauth/status')
+def auth_status():
+    """Kullanıcı giriş durumu"""
+    if session.get('logged_in'):
+        return jsonify({
+            'logged_in': True,
+            'user_name': session.get('user_name', ''),
+            'email': session.get('user_email', '')
+        })
+    return jsonify({'logged_in': False})
+
+def create_youtube_cookie_file(filepath, access_token):
+    """YouTube için Netscape cookie dosyası oluştur"""
+    cookie_content = f"""# Netscape HTTP Cookie File
+# This file was generated by video-downloader
+.youtube.com\tTRUE\t/\tTRUE\t0\tCONSENT\tYES+
+.youtube.com\tTRUE\t/\tTRUE\t0\tPREF\tf4=4000000
+.youtube.com\tTRUE\t/\tTRUE\t0\tLOGIN_INFO\t{access_token[:50]}
+"""
+    with open(filepath, 'w') as f:
+        f.write(cookie_content)
+
+# ============ Main Routes ============
+
+# ============ Main Routes ============
 
 @app.route('/')
 def index():
@@ -135,11 +271,20 @@ def get_info():
     if not url:
         return jsonify({'error': 'URL gerekli'}), 400
     
+    user_id = session.get('user_id')
+    
     try:
-        info = get_video_info(url)
+        info = get_video_info(url, user_id)
+        info['logged_in'] = session.get('logged_in', False)
         return jsonify(info)
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        error_msg = str(e)
+        if 'Sign in to confirm your age' in error_msg or 'age' in error_msg.lower():
+            return jsonify({
+                'error': 'Bu video yaş kısıtlamalı. İndirmek için Google ile giriş yapın.',
+                'requires_login': True
+            }), 403
+        return jsonify({'error': error_msg}), 400
 
 @app.route('/api/download', methods=['POST'])
 def start_download():
@@ -152,9 +297,9 @@ def start_download():
         return jsonify({'error': 'URL gerekli'}), 400
     
     download_id = str(uuid.uuid4())[:8]
+    user_id = session.get('user_id')
     
-    # Arka planda indirme başlat
-    thread = threading.Thread(target=download_video, args=(url, format_id, download_id))
+    thread = threading.Thread(target=download_video, args=(url, format_id, download_id, user_id))
     thread.start()
     
     return jsonify({'download_id': download_id})
