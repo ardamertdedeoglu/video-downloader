@@ -39,10 +39,14 @@ print(f"[DEBUG] IS_SERVER: {IS_SERVER}", file=sys.stderr)
 def get_ydl_opts(cookie_file=None):
     """yt-dlp ayarları"""
     opts = {
-        'quiet': True,
-        'no_warnings': True,
+        'quiet': False,
+        'verbose': True,
+        'no_warnings': False,
         'age_limit': None,
-        # 'extractor_args': {'youtube': {'player_client': ['web_creator', 'tv', 'mweb']}},
+        'cachedir': False,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
     }
     
     # Cookie dosyası varsa kullan
@@ -196,6 +200,9 @@ def upload_cookie():
         
         session['has_cookies'] = True
         print(f"[DEBUG] Cookie uploaded for session: {session_id}", file=sys.stderr)
+        print(f"[DEBUG] Cookie file size: {len(content)} bytes", file=sys.stderr)
+        if content:
+            print(f"[DEBUG] Cookie first line: {content.splitlines()[0]}", file=sys.stderr)
         
         return jsonify({'success': True, 'message': 'Cookie dosyası başarıyla yüklendi'})
     except Exception as e:
