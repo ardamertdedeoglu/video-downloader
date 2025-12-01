@@ -18,13 +18,19 @@ OAUTH_REDIRECT_URI = os.environ.get('OAUTH_REDIRECT_URI', 'http://localhost:5000
 
 # Download klasörü
 DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'downloads')
-if not os.path.exists(DOWNLOAD_FOLDER):
-    os.makedirs(DOWNLOAD_FOLDER)
+try:
+    if not os.path.exists(DOWNLOAD_FOLDER):
+        os.makedirs(DOWNLOAD_FOLDER)
+except Exception as e:
+    print(f"Warning: Could not create downloads folder: {e}")
 
 # Cookie dosyası klasörü
 COOKIE_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies')
-if not os.path.exists(COOKIE_FOLDER):
-    os.makedirs(COOKIE_FOLDER)
+try:
+    if not os.path.exists(COOKIE_FOLDER):
+        os.makedirs(COOKIE_FOLDER)
+except Exception as e:
+    print(f"Warning: Could not create cookies folder: {e}")
 
 # İndirme durumlarını takip etmek için
 download_status = {}
@@ -256,7 +262,10 @@ def create_youtube_cookie_file(filepath, access_token):
 
 # ============ Main Routes ============
 
-# ============ Main Routes ============
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    return jsonify({'status': 'ok', 'message': 'Application is running'})
 
 @app.route('/')
 def index():

@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Uygulama dosyalarını kopyala
 COPY . .
 
-# Downloads klasörünü oluştur
-RUN mkdir -p downloads
+# Downloads ve cookies klasörlerini oluştur
+RUN mkdir -p downloads cookies
 
 # Port - Railway otomatik atar
 ENV PORT=5000
