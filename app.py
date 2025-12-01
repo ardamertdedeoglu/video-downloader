@@ -46,9 +46,14 @@ def get_ydl_opts(cookie_file=None):
     }
     
     # Cookie dosyası varsa kullan
-    if cookie_file and os.path.exists(cookie_file):
-        opts['cookiefile'] = cookie_file
-        print(f"[DEBUG] Using cookie file: {cookie_file}", file=sys.stderr)
+    if cookie_file:
+        if os.path.exists(cookie_file):
+            opts['cookiefile'] = cookie_file
+            print(f"[DEBUG] Using cookie file: {cookie_file}", file=sys.stderr)
+        else:
+            print(f"[DEBUG] Cookie file path provided but file not found: {cookie_file}", file=sys.stderr)
+    else:
+        print(f"[DEBUG] No cookie file provided to get_ydl_opts", file=sys.stderr)
     
     # Yerel ortamda tarayıcı cookie'si kullan
     elif not IS_SERVER:
@@ -226,9 +231,13 @@ def delete_cookie():
 def get_user_cookie_file():
     """Kullanıcının cookie dosyasını al"""
     session_id = session.get('session_id')
+    print(f"[DEBUG] get_user_cookie_file - Session ID: {session_id}", file=sys.stderr)
+    
     if session_id:
         cookie_path = os.path.join(COOKIE_FOLDER, f'{session_id}.txt')
-        if os.path.exists(cookie_path):
+        exists = os.path.exists(cookie_path)
+        print(f"[DEBUG] Checking cookie path: {cookie_path}, Exists: {exists}", file=sys.stderr)
+        if exists:
             return cookie_path
     return None
 
@@ -279,6 +288,7 @@ def start_download():
     
     download_id = str(uuid.uuid4())[:8]
     cookie_file = get_user_cookie_file()
+    print(f"[DEBUG] start_download - Cookie file: {cookie_file}", file=sys.stderr)
     
     thread = threading.Thread(target=download_video, args=(url, format_id, download_id, cookie_file))
     thread.start()
