@@ -1,9 +1,9 @@
 # Python base image
 FROM python:3.11-slim
 
-# FFmpeg yükle
+# FFmpeg ve Node.js yükle
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get install -y --no-install-recommends ffmpeg nodejs && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
 
