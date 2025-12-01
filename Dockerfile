@@ -1,11 +1,16 @@
 # Python base image
 FROM python:3.11-slim
 
-# FFmpeg, Node.js ve npm yükle
+# FFmpeg ve Deno yükle
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg nodejs npm curl && \
+    apt-get install -y --no-install-recommends ffmpeg curl unzip && \
+    curl -fsSL https://deno.land/install.sh | sh && \
     rm -rf /var/lib/apt/lists/* && \
     apt-get clean
+
+# Deno'yu PATH'e ekle
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="${DENO_INSTALL}/bin:${PATH}"
 
 # Çalışma dizini
 WORKDIR /app
@@ -14,8 +19,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# yt-dlp'yi en son sürüme güncelle
-RUN pip install --upgrade yt-dlp
+# yt-dlp'yi EJS ile yükle (n-challenge için gerekli)
+RUN pip install --upgrade "yt-dlp[default]"
 
 # Uygulama dosyalarını kopyala
 COPY . .
