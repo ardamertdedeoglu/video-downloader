@@ -20,9 +20,5 @@ COPY . .
 # Downloads ve cookies klasörlerini oluştur
 RUN mkdir -p downloads cookies
 
-# Port - Railway otomatik atar
-ENV PORT=5000
-EXPOSE 5000
-
-# Çalıştır
-CMD gunicorn -w 2 -b 0.0.0.0:$PORT --timeout 300 app:app
+# Çalıştır - Railway PORT ortam değişkenini kullanır
+CMD ["sh", "-c", "gunicorn -w 2 -b 0.0.0.0:${PORT:-5000} --timeout 300 app:app"]
