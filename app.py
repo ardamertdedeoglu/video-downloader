@@ -7,9 +7,17 @@ import re
 import json
 import requests
 from urllib.parse import urlencode
+import sys
+
+print("[DEBUG] Starting app initialization...", file=sys.stderr)
+print(f"[DEBUG] Python version: {sys.version}", file=sys.stderr)
+print(f"[DEBUG] Current directory: {os.getcwd()}", file=sys.stderr)
+print(f"[DEBUG] Directory contents: {os.listdir('.')}", file=sys.stderr)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+print("[DEBUG] Flask app created successfully", file=sys.stderr)
 
 # OAuth ayarları
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')

@@ -21,4 +21,4 @@ COPY . .
 RUN mkdir -p downloads cookies
 
 # Çalıştır - Railway PORT ortam değişkenini kullanır
-CMD ["sh", "-c", "gunicorn -w 2 -b 0.0.0.0:${PORT:-5000} --timeout 300 app:app"]
+CMD ["sh", "-c", "gunicorn -w 2 -b 0.0.0.0:${PORT:-5000} --timeout 300 --preload --error-logfile - --access-logfile - --capture-output app:app"]
