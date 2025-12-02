@@ -667,25 +667,68 @@
         let currentUrl = '';
         let selectedFormat = 'best';
         let pairingTimerInterval = null;
+        let cookieSyncPollInterval = null;
+        let extensionId = null;
 
-        // ============ Cookie Tab Switching ============
-        function switchCookieTab(tab) {
-            // Tab butonlarını güncelle
-            document.querySelectorAll('.cookie-tab').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        // YouTube URL validation regex (XSS önleme için)
+        const YOUTUBE_URL_REGEX = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+|youtube\.com\/shorts\/[\w-]+)/;
 
-            // Tab içeriklerini güncelle
-            document.querySelectorAll('.cookie-tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`cookie-tab-${tab}`).classList.add('active');
+        // ============ URL Parameter Handling ============
+        function handleUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoUrl = urlParams.get('url');
+            const autoPair = urlParams.get('auto_pair');
+            const extId = urlParams.get('ext_id');
+            const cookiesReady = urlParams.get('cookies_ready');
 
-            // Extension tab'ına geçildiğinde bağlı extension'ları yükle
-            if (tab === 'extension') {
-                loadConnectedExtensions();
+            // Extension ID'yi kaydet
+            if (extId) {
+                extensionId = extId;
+            }
+
+            // Video URL'sini validate et ve doldur
+            if (videoUrl) {
+                const decodedUrl = decodeURIComponent(videoUrl);
+                if (sanitizeYouTubeUrl(decodedUrl)) {
+                    document.getElementById('urlInput').value = decodedUrl;
+                    currentUrl = decodedUrl;
+                    
+                    // Cookies zaten hazırsa direkt video bilgisi çek
+                    if (cookiesReady === 'true') {
+                        // Kısa bir gecikme ile video bilgisini çek
+                        setTimeout(() => {
+                            fetchVideoInfo();
+                        }, 500);
+                        return;
+                    }
+                }
+            }
+
+            // Auto-pair modunu başlat
+            if (autoPair === 'true' && extId) {
+                // Extension tab'ına geç ve pairing kodu oluştur
+                switchCookieTab('extension');
+                setTimeout(() => {
+                    generatePairingCodeAndNotify();
+                }, 300);
             }
         }
 
-        // ============ Extension Pairing ============
-        async function generatePairingCode() {
+        // YouTube URL'sini validate et (XSS önleme)
+        function sanitizeYouTubeUrl(url) {
+            if (!url) return null;
+            
+            // Sadece YouTube URL'lerine izin ver
+            if (!YOUTUBE_URL_REGEX.test(url)) {
+                console.warn('Invalid YouTube URL rejected:', url);
+                return null;
+            }
+            
+            return url;
+        }
+
+        // Pairing kodu oluştur ve extension'a bildir
+        async function generatePairingCodeAndNotify() {
             const btn = document.getElementById('generateCodeBtn');
             btn.disabled = true;
             btn.textContent = '⏳ Oluşturuluyor...';
@@ -708,6 +751,143 @@
 
                 // Geri sayımı başlat
                 startPairingTimer(data.expires_in);
+
+                // Extension'a pairing kodunu gönder
+                if (extensionId) {
+                    sendPairingCodeToExtension(data.pairing_code);
+                }
+
+                // Cookie sync için polling başlat
+                startCookieSyncPolling();
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Extension'a pairing kodunu gönder
+        function sendPairingCodeToExtension(code) {
+            if (!extensionId) {
+                console.log('No extension ID available');
+                return;
+            }
+
+            try {
+                // Chrome extension API kullanarak mesaj gönder
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    chrome.runtime.sendMessage(extensionId, {
+                        type: 'PAIRING_CODE',
+                        code: code,
+                        serverUrl: window.location.origin
+                    }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.log('Could not send to extension:', chrome.runtime.lastError.message);
+                        } else if (response && response.received) {
+                            console.log('Pairing code sent to extension successfully');
+                            showSuccess('Pairing kodu extension\'a gönderildi!');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error sending pairing code to extension:', error);
+            }
+        }
+
+        // Cookie sync için polling
+        function startCookieSyncPolling() {
+            // Önceki polling'i temizle
+            if (cookieSyncPollInterval) {
+                clearInterval(cookieSyncPollInterval);
+            }
+
+            let pollCount = 0;
+            const maxPolls = 30; // 60 saniye (2 sn x 30)
+
+            cookieSyncPollInterval = setInterval(async () => {
+                pollCount++;
+
+                try {
+                    const response = await fetch('/api/cookie/status');
+                    const data = await response.json();
+
+                    if (data.has_cookies) {
+                        // Cookie'ler senkronize edildi!
+                        clearInterval(cookieSyncPollInterval);
+                        showSuccess('Cookie\'ler senkronize edildi! Video bilgisi alınıyor...');
+                        
+                        // Video bilgisini çek
+                        if (currentUrl) {
+                            setTimeout(() => {
+                                fetchVideoInfo();
+                            }, 500);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Cookie polling error:', error);
+                }
+
+                // Timeout
+                if (pollCount >= maxPolls) {
+                    clearInterval(cookieSyncPollInterval);
+                    showError('Cookie senkronizasyonu zaman aşımına uğradı. Lütfen manuel olarak deneyin.');
+                }
+            }, 2000);
+        }
+
+        // ============ Cookie Tab Switching ============
+        function switchCookieTab(tab) {
+            // Tab butonlarını güncelle
+            document.querySelectorAll('.cookie-tab').forEach((btn, index) => {
+                btn.classList.remove('active');
+                if ((tab === 'upload' && index === 0) || (tab === 'extension' && index === 1)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Tab içeriklerini güncelle
+            document.querySelectorAll('.cookie-tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`cookie-tab-${tab}`).classList.add('active');
+
+            // Extension tab'ına geçildiğinde bağlı extension'ları yükle
+            if (tab === 'extension') {
+                loadConnectedExtensions();
+            }
+        }
+
+        // ============ Extension Pairing ============
+        async function generatePairingCode() {
+            // Eğer extensionId varsa, bildirim gönderen versiyonu kullan
+            if (extensionId) {
+                return generatePairingCodeAndNotify();
+            }
+
+            const btn = document.getElementById('generateCodeBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Oluşturuluyor...';
+
+            try {
+                const response = await fetch('/api/extension/generate-token', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Kod oluşturulamadı');
+                }
+
+                // Kodu göster
+                document.getElementById('pairingCode').textContent = data.pairing_code;
+                document.getElementById('pairingCodeSection').style.display = 'block';
+                btn.textContent = '🔄 Yeni Kod Oluştur';
+
+                // Geri sayımı başlat
+                startPairingTimer(data.expires_in);
+
+                // Cookie sync için polling başlat (manuel kullanım için de)
+                startCookieSyncPolling();
 
             } catch (error) {
                 showError(error.message);
@@ -1092,6 +1272,9 @@
 
         // Sayfa yüklendiğinde cookie durumunu kontrol et
         checkCookieStatus();
+
+        // URL parametrelerini işle
+        handleUrlParameters();
 
         // Enter tuşu ile arama
         document.getElementById('urlInput').addEventListener('keypress', function(e) {

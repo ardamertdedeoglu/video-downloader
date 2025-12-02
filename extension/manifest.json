@@ -6,12 +6,21 @@
   "permissions": [
     "cookies",
     "storage",
-    "alarms"
+    "alarms",
+    "tabs",
+    "activeTab"
   ],
   "host_permissions": [
     "*://*.youtube.com/*",
     "*://youtube.com/*"
   ],
+  "externally_connectable": {
+    "matches": [
+      "https://video-downloader-production-5a88.up.railway.app/*",
+      "http://localhost:*/*",
+      "http://127.0.0.1:*/*"
+    ]
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

@@ -555,6 +555,23 @@ def revoke_extension():
     
     return jsonify({'error': 'Extension bulunamadı'}), 404
 
+@app.route('/api/extension/pairing-status/<pairing_code>')
+def get_pairing_status(pairing_code):
+    """Pairing kodunun durumunu kontrol et"""
+    cleanup_expired_tokens()
+    
+    if pairing_code in pairing_tokens:
+        return jsonify({'status': 'pending'})
+    
+    # Token kullanılmış olabilir, session'da cookie var mı kontrol et
+    session_id = session.get('session_id')
+    if session_id:
+        has_cookies = session.get('has_cookies', False)
+        if has_cookies:
+            return jsonify({'status': 'completed'})
+    
+    return jsonify({'status': 'expired'})
+
 # CORS middleware for extension requests
 @app.after_request
 def add_cors_headers(response):
@@ -589,6 +606,14 @@ def get_info():
     
     if not url:
         return jsonify({'error': 'URL gerekli'}), 400
+    
+    # URL whitelist kontrolü (XSS önleme)
+    youtube_pattern = r'^https?://(www\.)?(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)'
+    if re.match(youtube_pattern, url):
+        # YouTube URL'si - sadece video ID'si ve bazı parametrelere izin ver
+        pass  # YouTube URL'leri güvenli
+    elif not url.startswith('http://') and not url.startswith('https://'):
+        return jsonify({'error': 'Geçersiz URL formatı'}), 400
     
     cookie_file = get_user_cookie_file()
     

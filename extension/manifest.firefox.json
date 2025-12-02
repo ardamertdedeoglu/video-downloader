@@ -3,12 +3,21 @@
   "name": "Video Downloader Cookie Sync",
   "version": "1.0.0",
   "description": "YouTube cookie'lerinizi Video Downloader uygulamasına otomatik olarak senkronize edin. +18 videoları indirmek için gerekli.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "video-downloader@example.com",
+      "strict_min_version": "91.0"
+    }
+  },
   "permissions": [
     "cookies",
     "storage",
     "alarms",
+    "tabs",
+    "activeTab",
     "*://*.youtube.com/*",
-    "*://youtube.com/*"
+    "*://youtube.com/*",
+    "https://video-downloader-production-5a88.up.railway.app/*"
   ],
   "browser_action": {
     "default_popup": "popup.html",

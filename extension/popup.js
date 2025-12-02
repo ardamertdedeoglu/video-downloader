@@ -9,7 +9,10 @@ const STORAGE_KEYS = {
 };
 
 // Default server URL (production)
-const DEFAULT_SERVER_URL = 'https://video-downloader-production.up.railway.app';
+const DEFAULT_SERVER_URL = 'https://video-downloader-production-5a88.up.railway.app';
+
+// YouTube URL validation regex
+const YOUTUBE_URL_REGEX = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/;
 
 // DOM Elements
 let elements = {};
@@ -17,12 +20,17 @@ let elements = {};
 // State
 let isConnected = false;
 let isSyncing = false;
+let currentYouTubeUrl = null;
+let lastQuickDownloadTime = 0;
+const THROTTLE_MS = 5000; // 5 saniye throttle
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     initElements();
+    await detectYouTubeVideo();
     await loadState();
     setupEventListeners();
+    setupExternalMessageListener();
 });
 
 function initElements() {
@@ -31,6 +39,11 @@ function initElements() {
         statusText: document.getElementById('status-text'),
         pairingSection: document.getElementById('pairing-section'),
         connectedSection: document.getElementById('connected-section'),
+        quickDownloadSection: document.getElementById('quick-download-section'),
+        detectedVideoUrl: document.getElementById('detected-video-url'),
+        quickDownloadBtn: document.getElementById('quick-download-btn'),
+        quickDownloadHelp: document.getElementById('quick-download-help'),
+        quickDownloadLoading: document.getElementById('quick-download-loading'),
         serverUrlInput: document.getElementById('server-url'),
         pairingCodeInput: document.getElementById('pairing-code'),
         pairBtn: document.getElementById('pair-btn'),
@@ -47,6 +60,153 @@ function initElements() {
         successMessage: document.getElementById('success-message'),
         successText: document.getElementById('success-text')
     };
+}
+
+// ============ YouTube URL Detection ============
+
+async function detectYouTubeVideo() {
+    try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const currentTab = tabs[0];
+        
+        if (currentTab && currentTab.url && isValidYouTubeUrl(currentTab.url)) {
+            currentYouTubeUrl = currentTab.url;
+            showQuickDownloadSection(currentTab.url);
+        }
+    } catch (error) {
+        console.error('Error detecting YouTube video:', error);
+    }
+}
+
+function isValidYouTubeUrl(url) {
+    return YOUTUBE_URL_REGEX.test(url);
+}
+
+function showQuickDownloadSection(url) {
+    if (elements.quickDownloadSection) {
+        elements.quickDownloadSection.classList.remove('hidden');
+        
+        // Video ID'yi çıkar ve göster
+        const videoId = extractVideoId(url);
+        if (videoId) {
+            elements.detectedVideoUrl.textContent = `Video: ${videoId}`;
+        } else {
+            elements.detectedVideoUrl.textContent = 'YouTube videosu algılandı';
+        }
+    }
+}
+
+function extractVideoId(url) {
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes('youtu.be')) {
+            return urlObj.pathname.slice(1);
+        }
+        if (urlObj.pathname.includes('/shorts/')) {
+            return urlObj.pathname.split('/shorts/')[1];
+        }
+        return urlObj.searchParams.get('v');
+    } catch {
+        return null;
+    }
+}
+
+// ============ Quick Download ============
+
+async function handleQuickDownload() {
+    // Throttle kontrolü
+    const now = Date.now();
+    if (now - lastQuickDownloadTime < THROTTLE_MS) {
+        const remaining = Math.ceil((THROTTLE_MS - (now - lastQuickDownloadTime)) / 1000);
+        showError(`Lütfen ${remaining} saniye bekleyin`);
+        return;
+    }
+    lastQuickDownloadTime = now;
+
+    if (!currentYouTubeUrl) {
+        showError('YouTube videosu bulunamadı');
+        return;
+    }
+
+    // UI güncelle
+    elements.quickDownloadBtn.disabled = true;
+    elements.quickDownloadLoading.classList.remove('hidden');
+    elements.quickDownloadHelp.classList.add('hidden');
+    hideMessages();
+
+    try {
+        const data = await chrome.storage.local.get([
+            STORAGE_KEYS.SERVER_URL,
+            STORAGE_KEYS.EXTENSION_TOKEN
+        ]);
+
+        const serverUrl = (data[STORAGE_KEYS.SERVER_URL] || DEFAULT_SERVER_URL).replace(/\/$/, '');
+        const extensionId = chrome.runtime.id;
+
+        if (isConnected && data[STORAGE_KEYS.EXTENSION_TOKEN]) {
+            // Zaten bağlı - cookie'leri sync et ve direkt aç
+            try {
+                await syncCookies();
+                // Cookie'ler hazır, direkt video sayfasına yönlendir
+                const targetUrl = `${serverUrl}/?url=${encodeURIComponent(currentYouTubeUrl)}&cookies_ready=true`;
+                chrome.tabs.create({ url: targetUrl });
+                window.close();
+            } catch (syncError) {
+                // Sync başarısız olsa bile sayfayı aç
+                console.error('Sync error during quick download:', syncError);
+                const targetUrl = `${serverUrl}/?url=${encodeURIComponent(currentYouTubeUrl)}&cookies_ready=true`;
+                chrome.tabs.create({ url: targetUrl });
+                window.close();
+            }
+        } else {
+            // Bağlı değil - pairing akışını başlat
+            const targetUrl = `${serverUrl}/?url=${encodeURIComponent(currentYouTubeUrl)}&auto_pair=true&ext_id=${extensionId}`;
+            chrome.tabs.create({ url: targetUrl });
+            // Popup açık kalsın, pairing kodu beklesin
+            showSuccess('Sayfa açıldı, pairing kodunu bekliyor...');
+        }
+    } catch (error) {
+        console.error('Quick download error:', error);
+        showError('Bir hata oluştu: ' + error.message);
+        // Fallback: manuel akışa yönlendir
+        elements.pairingSection.classList.remove('hidden');
+    } finally {
+        elements.quickDownloadBtn.disabled = false;
+        elements.quickDownloadLoading.classList.add('hidden');
+        elements.quickDownloadHelp.classList.remove('hidden');
+    }
+}
+
+// ============ External Message Listener ============
+
+function setupExternalMessageListener() {
+    // Website'dan gelen mesajları dinle
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message.type === 'PAIRING_CODE_FROM_WEBSITE') {
+            handleAutoPairing(message.code, message.serverUrl);
+            sendResponse({ received: true });
+        }
+        return true;
+    });
+}
+
+async function handleAutoPairing(code, serverUrl) {
+    if (!code || code.length !== 6) {
+        console.error('Invalid pairing code received');
+        return;
+    }
+
+    // Pairing kodunu input'a yaz ve otomatik pair et
+    if (elements.pairingCodeInput) {
+        elements.pairingCodeInput.value = code.toUpperCase();
+    }
+    if (elements.serverUrlInput && serverUrl) {
+        elements.serverUrlInput.value = serverUrl;
+    }
+
+    // Otomatik pair
+    showSuccess('Pairing kodu alındı, bağlanılıyor...');
+    await handlePair();
 }
 
 async function loadState() {
@@ -87,6 +247,11 @@ function setupEventListeners() {
     elements.pairBtn.addEventListener('click', handlePair);
     elements.syncBtn.addEventListener('click', handleSync);
     elements.disconnectBtn.addEventListener('click', handleDisconnect);
+    
+    // Quick download butonu
+    if (elements.quickDownloadBtn) {
+        elements.quickDownloadBtn.addEventListener('click', handleQuickDownload);
+    }
 
     // Pairing kodu auto-uppercase
     elements.pairingCodeInput.addEventListener('input', (e) => {

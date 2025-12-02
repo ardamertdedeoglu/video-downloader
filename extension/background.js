@@ -99,6 +99,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
 });
 
+// Website'dan gelen external mesajları dinle (externally_connectable)
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+    console.log('[Video Downloader] External message received:', message.type, 'from:', sender.origin);
+    
+    // Origin kontrolü - sadece güvenilir kaynaklardan
+    const allowedOrigins = [
+        'https://video-downloader-production-5a88.up.railway.app',
+        'http://localhost',
+        'http://127.0.0.1'
+    ];
+    
+    const isAllowed = allowedOrigins.some(origin => 
+        sender.origin === origin || sender.origin.startsWith(origin)
+    );
+    
+    if (!isAllowed) {
+        console.warn('[Video Downloader] Rejected message from untrusted origin:', sender.origin);
+        sendResponse({ error: 'Untrusted origin' });
+        return true;
+    }
+    
+    if (message.type === 'PAIRING_CODE') {
+        // Pairing kodunu popup'a ilet
+        chrome.runtime.sendMessage({
+            type: 'PAIRING_CODE_FROM_WEBSITE',
+            code: message.code,
+            serverUrl: message.serverUrl
+        }).catch(() => {
+            // Popup kapalı olabilir, hata yok sayılabilir
+            console.log('[Video Downloader] Could not forward pairing code to popup (popup may be closed)');
+        });
+        sendResponse({ received: true });
+    } else if (message.type === 'PING') {
+        // Website'ın extension'ı kontrol etmesi için
+        sendResponse({ pong: true, extensionId: chrome.runtime.id });
+    }
+    
+    return true;
+});
+
 // ============ Sync Logic ============
 
 let syncDebounceTimer = null;
