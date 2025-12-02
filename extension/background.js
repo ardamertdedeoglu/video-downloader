@@ -121,15 +121,27 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     }
     
     if (message.type === 'PAIRING_CODE') {
-        // Pairing kodunu popup'a ilet
-        chrome.runtime.sendMessage({
-            type: 'PAIRING_CODE_FROM_WEBSITE',
-            code: message.code,
-            serverUrl: message.serverUrl
-        }).catch(() => {
-            // Popup kapalı olabilir, hata yok sayılabilir
-            console.log('[Video Downloader] Could not forward pairing code to popup (popup may be closed)');
+        // Pairing kodunu storage'a kaydet (popup kontrol edecek)
+        chrome.storage.local.set({
+            pendingPairingCode: message.code,
+            pendingServerUrl: message.serverUrl,
+            pendingPairingTimestamp: Date.now()
+        }).then(() => {
+            console.log('[Video Downloader] Pairing code saved to storage:', message.code);
         });
+        
+        // Background'da direkt pairing yap (popup'a bağımlı olmadan)
+        handleBackgroundPairing(message.code, message.serverUrl).then(success => {
+            if (success) {
+                console.log('[Video Downloader] Background pairing successful');
+                // Popup açıksa bildir
+                chrome.runtime.sendMessage({
+                    type: 'PAIRING_COMPLETED',
+                    success: true
+                }).catch(() => {});
+            }
+        });
+        
         sendResponse({ received: true });
     } else if (message.type === 'PING') {
         // Website'ın extension'ı kontrol etmesi için
@@ -138,6 +150,104 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     
     return true;
 });
+
+// ============ Background Pairing ============
+
+async function handleBackgroundPairing(code, serverUrl) {
+    if (!code || code.length !== 6) {
+        console.error('[Video Downloader] Invalid pairing code');
+        return false;
+    }
+
+    serverUrl = (serverUrl || 'https://video-downloader-production-5a88.up.railway.app').replace(/\/$/, '');
+
+    try {
+        // Tarayıcı bilgisi
+        const ua = navigator.userAgent;
+        let browser = 'Unknown';
+        if (ua.includes('Firefox')) browser = 'Firefox';
+        else if (ua.includes('Edg')) browser = 'Edge';
+        else if (ua.includes('OPR') || ua.includes('Opera')) browser = 'Opera';
+        else if (ua.includes('Chrome')) browser = 'Chrome';
+
+        console.log('[Video Downloader] Attempting background pairing with code:', code);
+
+        // Pair isteği gönder
+        const response = await fetch(`${serverUrl}/api/extension/pair`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                pairing_code: code.toUpperCase(),
+                browser: browser
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('[Video Downloader] Pairing failed:', data.error);
+            return false;
+        }
+
+        // Token'ı kaydet
+        await chrome.storage.local.set({
+            [STORAGE_KEYS.SERVER_URL]: serverUrl,
+            [STORAGE_KEYS.EXTENSION_TOKEN]: data.extension_token
+        });
+
+        console.log('[Video Downloader] Pairing successful, syncing cookies...');
+
+        // Hemen cookie'leri senkronize et
+        await syncCookiesBackground(serverUrl, data.extension_token);
+
+        // Pending pairing bilgilerini temizle
+        await chrome.storage.local.remove([
+            'pendingPairingCode',
+            'pendingServerUrl',
+            'pendingPairingTimestamp'
+        ]);
+
+        return true;
+
+    } catch (error) {
+        console.error('[Video Downloader] Background pairing error:', error);
+        return false;
+    }
+}
+
+async function syncCookiesBackground(serverUrl, token) {
+    try {
+        // YouTube cookie'lerini al
+        const cookies1 = await chrome.cookies.getAll({ domain: '.youtube.com' });
+        const cookies2 = await chrome.cookies.getAll({ domain: 'youtube.com' });
+        const allCookies = [...cookies1, ...cookies2];
+
+        if (allCookies.length === 0) {
+            console.log('[Video Downloader] No YouTube cookies found');
+            return;
+        }
+
+        console.log(`[Video Downloader] Syncing ${allCookies.length} cookies after pairing`);
+
+        const response = await fetch(`${serverUrl}/api/extension/push-cookies`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Extension-Token': token
+            },
+            body: JSON.stringify({ cookies: allCookies })
+        });
+
+        if (response.ok) {
+            await chrome.storage.local.set({ [STORAGE_KEYS.LAST_SYNC]: Date.now() });
+            console.log('[Video Downloader] Cookie sync after pairing successful');
+        }
+    } catch (error) {
+        console.error('[Video Downloader] Cookie sync error:', error);
+    }
+}
 
 // ============ Sync Logic ============
 

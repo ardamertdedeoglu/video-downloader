@@ -31,6 +31,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadState();
     setupEventListeners();
     setupExternalMessageListener();
+    
+    // Bekleyen pairing kodu var mı kontrol et
+    await checkPendingPairingCode();
+    
+    // Periyodik olarak kontrol et (popup açıkken website kod gönderebilir)
+    setInterval(checkPendingPairingCode, 1000);
 });
 
 function initElements() {
@@ -180,14 +186,69 @@ async function handleQuickDownload() {
 // ============ External Message Listener ============
 
 function setupExternalMessageListener() {
-    // Website'dan gelen mesajları dinle
+    // Background'dan gelen mesajları dinle
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === 'PAIRING_CODE_FROM_WEBSITE') {
             handleAutoPairing(message.code, message.serverUrl);
             sendResponse({ received: true });
+        } else if (message.type === 'PAIRING_COMPLETED') {
+            // Background pairing tamamlandı, state'i güncelle
+            console.log('[Popup] Background pairing completed');
+            showSuccess('Bağlantı kuruldu! Cookie\'ler senkronize edildi.');
+            loadState(); // State'i yeniden yükle
+            sendResponse({ received: true });
         }
         return true;
     });
+}
+
+// Storage'da bekleyen pairing kodu var mı kontrol et
+async function checkPendingPairingCode() {
+    // Zaten bağlıysa kontrol etme
+    if (isConnected) return;
+    
+    try {
+        // Önce token var mı kontrol et (background pairing yapmış olabilir)
+        const tokenData = await chrome.storage.local.get([STORAGE_KEYS.EXTENSION_TOKEN]);
+        if (tokenData[STORAGE_KEYS.EXTENSION_TOKEN]) {
+            console.log('[Popup] Token found, background already paired');
+            await loadState(); // State'i yeniden yükle
+            return;
+        }
+        
+        const data = await chrome.storage.local.get([
+            'pendingPairingCode',
+            'pendingServerUrl', 
+            'pendingPairingTimestamp'
+        ]);
+        
+        if (data.pendingPairingCode && data.pendingPairingTimestamp) {
+            // 5 dakikadan eski kodları yok say
+            const age = Date.now() - data.pendingPairingTimestamp;
+            if (age < 5 * 60 * 1000) {
+                console.log('[Popup] Found pending pairing code:', data.pendingPairingCode);
+                
+                // Kodu temizle (tekrar işlenmemesi için)
+                await chrome.storage.local.remove([
+                    'pendingPairingCode',
+                    'pendingServerUrl',
+                    'pendingPairingTimestamp'
+                ]);
+                
+                // Otomatik pair et
+                await handleAutoPairing(data.pendingPairingCode, data.pendingServerUrl);
+            } else {
+                // Eski kodu temizle
+                await chrome.storage.local.remove([
+                    'pendingPairingCode',
+                    'pendingServerUrl',
+                    'pendingPairingTimestamp'
+                ]);
+            }
+        }
+    } catch (error) {
+        console.error('[Popup] Error checking pending pairing code:', error);
+    }
 }
 
 async function handleAutoPairing(code, serverUrl) {
