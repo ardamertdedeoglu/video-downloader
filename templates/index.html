@@ -278,6 +278,45 @@
             color: #888;
         }
 
+        /* Cookie Tabs */
+        .cookie-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 15px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .cookie-tab {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .cookie-tab:hover {
+            color: #fff;
+        }
+
+        .cookie-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .cookie-tab-content {
+            display: none;
+        }
+
+        .cookie-tab-content.active {
+            display: block;
+        }
+
         .cookie-upload-area {
             border: 2px dashed #4a4a6a;
             border-radius: 8px;
@@ -307,6 +346,144 @@
 
         .cookie-info a {
             color: #667eea;
+        }
+
+        /* Extension Section */
+        .extension-pairing {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .pairing-code-display {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .pairing-code {
+            font-size: 2.5rem;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #667eea;
+            font-family: monospace;
+        }
+
+        .pairing-timer {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .pairing-timer.warning {
+            color: #ffa502;
+        }
+
+        .pairing-timer.expired {
+            color: #ff4757;
+        }
+
+        .btn-secondary {
+            padding: 12px 24px;
+            background: #3a3a5a;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #4a4a6a;
+        }
+
+        .connected-extensions {
+            margin-top: 20px;
+        }
+
+        .extension-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1a1a2e;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .extension-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .extension-browser {
+            font-size: 1.2rem;
+        }
+
+        .extension-details {
+            font-size: 0.85rem;
+        }
+
+        .extension-details .browser-name {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .extension-details .last-sync {
+            color: #888;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #ff4757;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: #ff6b7a;
+        }
+
+        .extension-download-links {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #3a3a5a;
+        }
+
+        .extension-download-links h4 {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: normal;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .download-buttons a {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #3a3a5a;
+            border-radius: 6px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .download-buttons a:hover {
+            background: #4a4a6a;
         }
 
         .btn-delete {
@@ -348,21 +525,82 @@
                     🗑️ Cookie Sil
                 </button>
             </div>
-            
-            <div class="cookie-upload-area" id="cookieUploadArea" onclick="document.getElementById('cookieFile').click()">
-                <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
-                <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
-                <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
-                    +18 videolar için gerekli (Netscape formatında .txt dosyası)
-                </p>
+
+            <!-- Cookie Tabs -->
+            <div class="cookie-tabs">
+                <button class="cookie-tab active" onclick="switchCookieTab('upload')">📁 Dosya Yükle</button>
+                <button class="cookie-tab" onclick="switchCookieTab('extension')">🔌 Extension ile Bağlan</button>
             </div>
-            
-            <div class="cookie-info">
-                <strong>Cookie dosyası nasıl alınır?</strong><br><br>
-                1. Tarayıcınıza <a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY</a> eklentisini yükleyin<br>
-                2. YouTube'a giriş yapın<br>
-                3. Eklenti ikonuna tıklayıp "Export" butonuna basın<br>
-                4. İndirilen .txt dosyasını buraya yükleyin
+
+            <!-- Tab 1: Dosya Yükle -->
+            <div id="cookie-tab-upload" class="cookie-tab-content active">
+                <div class="cookie-upload-area" id="cookieUploadArea" onclick="document.getElementById('cookieFile').click()">
+                    <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
+                    <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
+                    <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
+                        +18 videolar için gerekli (Netscape formatında .txt dosyası)
+                    </p>
+                </div>
+                
+                <div class="cookie-info">
+                    <strong>Cookie dosyası nasıl alınır?</strong><br><br>
+                    1. Tarayıcınıza <a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY</a> eklentisini yükleyin<br>
+                    2. YouTube'a giriş yapın<br>
+                    3. Eklenti ikonuna tıklayıp "Export" butonuna basın<br>
+                    4. İndirilen .txt dosyasını buraya yükleyin
+                </div>
+            </div>
+
+            <!-- Tab 2: Extension ile Bağlan -->
+            <div id="cookie-tab-extension" class="cookie-tab-content">
+                <div class="extension-pairing">
+                    <p style="color: #888; margin-bottom: 15px;">
+                        Browser extension'ımızı kullanarak cookie'lerinizi otomatik senkronize edin.
+                    </p>
+
+                    <!-- Pairing Code Display -->
+                    <div id="pairingCodeSection" style="display: none;">
+                        <div class="pairing-code-display">
+                            <div class="pairing-code" id="pairingCode">------</div>
+                            <div class="pairing-timer" id="pairingTimer">10:00 kaldı</div>
+                        </div>
+                        <p style="color: #888; font-size: 0.85rem;">
+                            Bu kodu extension popup'ına girin
+                        </p>
+                    </div>
+
+                    <button class="btn-primary" id="generateCodeBtn" onclick="generatePairingCode()">
+                        🔑 Pairing Kodu Oluştur
+                    </button>
+
+                    <!-- Connected Extensions -->
+                    <div class="connected-extensions" id="connectedExtensions" style="display: none;">
+                        <h4 style="color: #888; margin-bottom: 10px; font-weight: normal;">Bağlı Extension'lar:</h4>
+                        <div id="extensionList"></div>
+                    </div>
+
+                    <!-- Extension Download Links -->
+                    <div class="extension-download-links">
+                        <h4>Extension'ı İndirin:</h4>
+                        <div class="download-buttons">
+                            <a href="#" target="_blank">
+                                <span>🌐</span> Chrome
+                            </a>
+                            <a href="#" target="_blank">
+                                <span>🦊</span> Firefox
+                            </a>
+                            <a href="#" target="_blank">
+                                <span>🦁</span> Brave
+                            </a>
+                            <a href="#" target="_blank">
+                                <span>🔴</span> Opera
+                            </a>
+                        </div>
+                        <p style="color: #666; font-size: 0.8rem; margin-top: 10px;">
+                            * Extension yakında mağazalarda yayınlanacak
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -428,13 +666,179 @@
     <script>
         let currentUrl = '';
         let selectedFormat = 'best';
+        let pairingTimerInterval = null;
 
-        // Cookie durumunu kontrol et
+        // ============ Cookie Tab Switching ============
+        function switchCookieTab(tab) {
+            // Tab butonlarını güncelle
+            document.querySelectorAll('.cookie-tab').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Tab içeriklerini güncelle
+            document.querySelectorAll('.cookie-tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`cookie-tab-${tab}`).classList.add('active');
+
+            // Extension tab'ına geçildiğinde bağlı extension'ları yükle
+            if (tab === 'extension') {
+                loadConnectedExtensions();
+            }
+        }
+
+        // ============ Extension Pairing ============
+        async function generatePairingCode() {
+            const btn = document.getElementById('generateCodeBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Oluşturuluyor...';
+
+            try {
+                const response = await fetch('/api/extension/generate-token', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Kod oluşturulamadı');
+                }
+
+                // Kodu göster
+                document.getElementById('pairingCode').textContent = data.pairing_code;
+                document.getElementById('pairingCodeSection').style.display = 'block';
+                btn.textContent = '🔄 Yeni Kod Oluştur';
+
+                // Geri sayımı başlat
+                startPairingTimer(data.expires_in);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function startPairingTimer(seconds) {
+            // Önceki timer'ı temizle
+            if (pairingTimerInterval) {
+                clearInterval(pairingTimerInterval);
+            }
+
+            let remaining = seconds;
+            const timerEl = document.getElementById('pairingTimer');
+
+            function updateTimer() {
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} kaldı`;
+
+                // Uyarı renkleri
+                if (remaining <= 60) {
+                    timerEl.className = 'pairing-timer warning';
+                } else {
+                    timerEl.className = 'pairing-timer';
+                }
+
+                if (remaining <= 0) {
+                    timerEl.textContent = 'Süre doldu! Yeni kod oluşturun.';
+                    timerEl.className = 'pairing-timer expired';
+                    clearInterval(pairingTimerInterval);
+                }
+
+                remaining--;
+            }
+
+            updateTimer();
+            pairingTimerInterval = setInterval(updateTimer, 1000);
+        }
+
+        async function loadConnectedExtensions() {
+            try {
+                const response = await fetch('/api/extension/list');
+                const data = await response.json();
+
+                const container = document.getElementById('connectedExtensions');
+                const list = document.getElementById('extensionList');
+
+                if (data.extensions && data.extensions.length > 0) {
+                    container.style.display = 'block';
+                    list.innerHTML = data.extensions.map(ext => `
+                        <div class="extension-item">
+                            <div class="extension-info">
+                                <span class="extension-browser">${getBrowserIcon(ext.browser)}</span>
+                                <div class="extension-details">
+                                    <div class="browser-name">${ext.browser}</div>
+                                    <div class="last-sync">${formatLastSync(ext.last_sync)}</div>
+                                </div>
+                            </div>
+                            <button class="btn-small" onclick="revokeExtension('${ext.token_prefix}')">
+                                Kaldır
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    container.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading extensions:', error);
+            }
+        }
+
+        function getBrowserIcon(browser) {
+            const icons = {
+                'Chrome': '🌐',
+                'Firefox': '🦊',
+                'Brave': '🦁',
+                'Opera': '🔴',
+                'Edge': '📘'
+            };
+            return icons[browser] || '🌐';
+        }
+
+        function formatLastSync(timestamp) {
+            if (!timestamp) return 'Henüz senkronize edilmedi';
+
+            const date = new Date(timestamp * 1000);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Az önce';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)} dk önce`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)} saat önce`;
+            return date.toLocaleDateString('tr-TR');
+        }
+
+        async function revokeExtension(tokenPrefix) {
+            if (!confirm('Bu extension bağlantısını kaldırmak istediğinize emin misiniz?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/extension/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token_prefix: tokenPrefix })
+                });
+
+                if (response.ok) {
+                    showSuccess('Extension bağlantısı kaldırıldı');
+                    loadConnectedExtensions();
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Kaldırma başarısız');
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        // ============ Cookie Status ============
         async function checkCookieStatus() {
             try {
                 const response = await fetch('/api/cookie/status');
                 const data = await response.json();
                 updateCookieUI(data.has_cookies);
+
+                // Extension'ları da yükle
+                loadConnectedExtensions();
             } catch (error) {
                 console.error('Cookie status check failed:', error);
             }
