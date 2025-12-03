@@ -145,42 +145,23 @@
                 <!-- Website Cookie Sync -->
                 <div class="setting-group">
                     <label>🍪 +18 Video Desteği</label>
-                    <p class="setting-desc">Yaş kısıtlamalı videolar için web sitesinden çerez senkronizasyonu</p>
+                    <p class="setting-desc">Yaş kısıtlamalı videolar için YouTube hesabınıza giriş yapın</p>
                     
                     <div class="cookie-sync-status" id="cookieSyncStatus">
                         <span class="cookie-icon">🔒</span>
-                        <span id="cookieSyncText">Çerez yüklenmedi</span>
+                        <span id="cookieSyncText">Giriş yapılmadı</span>
                     </div>
                     
                     <div class="cookie-sync-actions">
-                        <button id="importCookieBtn" class="btn-small">📁 Cookie Dosyası Yükle</button>
-                        <button id="openWebsiteBtn" class="btn-small btn-accent">🌐 Web Sitesinden Al</button>
-                        <button id="deleteCookieBtn" class="btn-small btn-ghost" style="display: none;">🗑️ Sil</button>
+                        <button id="youtubeLoginBtn" class="btn-primary">🔐 YouTube'a Giriş Yap</button>
+                        <button id="refreshCookiesBtn" class="btn-small" style="display: none;">🔄 Çerezleri Yenile</button>
+                        <button id="importCookieBtn" class="btn-small btn-ghost">📁 Dosyadan Yükle</button>
+                        <button id="deleteCookieBtn" class="btn-small btn-ghost" style="display: none;">🗑️ Çıkış Yap</button>
                     </div>
                     
                     <p class="setting-hint" style="margin-top: 8px;">
-                        💡 Web sitesine gidin, YouTube'a giriş yapın, çerezleri senkronize edin
+                        💡 Giriş yaptıktan sonra +18 videolar otomatik olarak indirilebilir
                     </p>
-                </div>
-
-                <!-- Cookie Settings -->
-                <div class="setting-group">
-                    <label>Tarayıcı Çerezi Kullanımı</label>
-                    <p class="setting-desc">Yerel tarayıcıdan çerez okuma (tarayıcı kapalıyken çalışır)</p>
-                    <div class="toggle-container">
-                        <label class="toggle">
-                            <input type="checkbox" id="useCookiesToggle" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span id="cookieStatusText">Çerezler aktif</span>
-                    </div>
-                </div>
-
-                <!-- Browser Selection -->
-                <div class="setting-group" id="browserSettingGroup">
-                    <label>Çerez Tarayıcısı</label>
-                    <p class="setting-desc">Yaş kısıtlamalı videolar için giriş yaptığınız tarayıcıyı seçin</p>
-                    <div class="browser-list" id="browserList"></div>
                 </div>
 
                 <!-- Download Path -->

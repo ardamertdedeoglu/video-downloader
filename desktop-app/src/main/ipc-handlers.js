@@ -1,9 +1,11 @@
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, BrowserWindow } = require('electron');
 const { getVideoInfo, downloadVideo, cancelDownload } = require('./downloader');
 const { checkBinariesStatus, downloadBinaries } = require('./binary-manager');
 const { 
-    generatePairingCode, 
-    pairWithWebsite, 
+    autoSyncCookies,
+    quickSyncFromSession,
+    checkLoginStatus,
+    clearAuthSession,
     loadCookiesFromFile, 
     deleteCookieFile,
     getCookieFilePath,
@@ -74,40 +76,36 @@ function setupIpcHandlers(store) {
         }
     });
 
-    // Get supported browsers
-    ipcMain.handle('get-browsers', () => {
-        return [
-            { id: 'chrome', name: 'Google Chrome', icon: '🌐' },
-            { id: 'firefox', name: 'Mozilla Firefox', icon: '🦊' },
-            { id: 'edge', name: 'Microsoft Edge', icon: '🔷' },
-            { id: 'brave', name: 'Brave', icon: '🦁' },
-            { id: 'opera', name: 'Opera', icon: '🔴' },
-            { id: 'chromium', name: 'Chromium', icon: '⚪' }
-        ];
-    });
-
     // ============ Cookie Sync Handlers ============
     
-    // Generate pairing code for website sync
-    ipcMain.handle('generate-pairing-code', async () => {
+    // Auto sync cookies - opens YouTube login window
+    ipcMain.handle('auto-sync-cookies', async (event) => {
         try {
-            const result = await generatePairingCode();
+            const mainWindow = BrowserWindow.fromWebContents(event.sender);
+            const result = await autoSyncCookies(mainWindow);
             return result;
         } catch (error) {
             return { success: false, error: error.message };
         }
     });
 
-    // Pair with website
-    ipcMain.handle('pair-with-website', async (event, pairingCode) => {
+    // Quick sync from existing session (no login window)
+    ipcMain.handle('quick-sync-cookies', async () => {
         try {
-            const result = await pairWithWebsite(pairingCode);
-            if (result.success) {
-                store.set('extensionToken', result.extensionToken);
-            }
+            const result = await quickSyncFromSession();
             return result;
         } catch (error) {
             return { success: false, error: error.message };
+        }
+    });
+
+    // Check YouTube login status
+    ipcMain.handle('check-login-status', async () => {
+        try {
+            const result = await checkLoginStatus();
+            return result;
+        } catch (error) {
+            return { isLoggedIn: false, cookieCount: 0 };
         }
     });
 
@@ -121,11 +119,15 @@ function setupIpcHandlers(store) {
         };
     });
 
-    // Delete cookies
-    ipcMain.handle('delete-cookies', () => {
-        const deleted = deleteCookieFile();
-        store.delete('extensionToken');
-        return { success: deleted };
+    // Delete cookies and clear session
+    ipcMain.handle('delete-cookies', async () => {
+        try {
+            const result = await clearAuthSession();
+            return result;
+        } catch (error) {
+            const deleted = deleteCookieFile();
+            return { success: deleted };
+        }
     });
 
     // Import cookie file from disk

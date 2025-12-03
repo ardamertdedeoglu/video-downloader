@@ -12,15 +12,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),
     selectDownloadPath: () => ipcRenderer.invoke('select-download-path'),
     openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
-    getBrowsers: () => ipcRenderer.invoke('get-browsers'),
     
     // Binaries
     checkBinaries: () => ipcRenderer.invoke('check-binaries'),
     downloadBinaries: () => ipcRenderer.invoke('download-binaries'),
     
     // Cookie sync
-    generatePairingCode: () => ipcRenderer.invoke('generate-pairing-code'),
-    pairWithWebsite: (code) => ipcRenderer.invoke('pair-with-website', code),
+    autoSyncCookies: () => ipcRenderer.invoke('auto-sync-cookies'),
+    quickSyncCookies: () => ipcRenderer.invoke('quick-sync-cookies'),
+    checkLoginStatus: () => ipcRenderer.invoke('check-login-status'),
     getCookieStatus: () => ipcRenderer.invoke('get-cookie-status'),
     deleteCookies: () => ipcRenderer.invoke('delete-cookies'),
     importCookieFile: () => ipcRenderer.invoke('import-cookie-file'),

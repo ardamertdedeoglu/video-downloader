@@ -59,8 +59,9 @@ const elements = {
     // Cookie sync elements
     cookieSyncStatus: document.getElementById('cookieSyncStatus'),
     cookieSyncText: document.getElementById('cookieSyncText'),
+    youtubeLoginBtn: document.getElementById('youtubeLoginBtn'),
+    refreshCookiesBtn: document.getElementById('refreshCookiesBtn'),
     importCookieBtn: document.getElementById('importCookieBtn'),
-    openWebsiteBtn: document.getElementById('openWebsiteBtn'),
     deleteCookieBtn: document.getElementById('deleteCookieBtn')
 };
 
@@ -139,15 +140,52 @@ function setupEventListeners() {
         await window.electronAPI.downloadBinaries();
     });
     
-    // Cookie toggle
-    elements.useCookiesToggle.addEventListener('change', async (e) => {
-        const useCookies = e.target.checked;
-        await window.electronAPI.setSetting('useCookies', useCookies);
-        elements.cookieStatusText.textContent = useCookies ? 'Çerezler aktif' : 'Çerezler devre dışı';
-        elements.browserSettingGroup.classList.toggle('disabled', !useCookies);
+    // Cookie sync buttons
+    elements.youtubeLoginBtn.addEventListener('click', async () => {
+        elements.youtubeLoginBtn.textContent = 'Giriş yapılıyor...';
+        elements.youtubeLoginBtn.disabled = true;
+        
+        try {
+            const result = await window.electronAPI.autoSyncCookies();
+            if (result.success) {
+                showSuccess(result.message || `${result.cookieCount} çerez başarıyla senkronize edildi!`);
+                await checkCookieStatus();
+            } else if (result.error !== 'Giriş penceresi kapatıldı') {
+                showError(result.error);
+            }
+        } catch (error) {
+            showError('Giriş yapılamadı');
+        } finally {
+            elements.youtubeLoginBtn.textContent = '🔐 YouTube\'a Giriş Yap';
+            elements.youtubeLoginBtn.disabled = false;
+        }
     });
     
-    // Cookie sync buttons
+    elements.refreshCookiesBtn.addEventListener('click', async () => {
+        elements.refreshCookiesBtn.textContent = 'Yenileniyor...';
+        elements.refreshCookiesBtn.disabled = true;
+        
+        try {
+            const result = await window.electronAPI.quickSyncCookies();
+            if (result.success) {
+                showSuccess(result.message || 'Çerezler yenilendi!');
+                await checkCookieStatus();
+            } else {
+                // Kayıtlı oturum yoksa login penceresini aç
+                const loginResult = await window.electronAPI.autoSyncCookies();
+                if (loginResult.success) {
+                    showSuccess(loginResult.message || 'Çerezler senkronize edildi!');
+                    await checkCookieStatus();
+                }
+            }
+        } catch (error) {
+            showError('Çerezler yenilenemedi');
+        } finally {
+            elements.refreshCookiesBtn.textContent = '🔄 Çerezleri Yenile';
+            elements.refreshCookiesBtn.disabled = false;
+        }
+    });
+    
     elements.importCookieBtn.addEventListener('click', async () => {
         const result = await window.electronAPI.importCookieFile();
         if (result.success) {
@@ -158,14 +196,10 @@ function setupEventListeners() {
         }
     });
     
-    elements.openWebsiteBtn.addEventListener('click', () => {
-        // Open the website in default browser
-        window.open('https://video-downloader-production-9a51.up.railway.app', '_blank');
-    });
-    
     elements.deleteCookieBtn.addEventListener('click', async () => {
         await window.electronAPI.deleteCookies();
         await checkCookieStatus();
+        showSuccess('Oturum kapatıldı');
     });
     
     // Update
@@ -239,24 +273,6 @@ async function loadSettings() {
     elements.useCookiesToggle.checked = useCookies;
     elements.cookieStatusText.textContent = useCookies ? 'Çerezler aktif' : 'Çerezler devre dışı';
     elements.browserSettingGroup.classList.toggle('disabled', !useCookies);
-    
-    // Load browsers
-    const browsers = await window.electronAPI.getBrowsers();
-    elements.browserList.innerHTML = browsers.map(b => `
-        <div class="browser-item ${b.id === settings.browser ? 'active' : ''}" data-browser="${b.id}">
-            <span class="browser-icon">${b.icon}</span>
-            <span class="browser-name">${b.name}</span>
-        </div>
-    `).join('');
-    
-    // Browser selection
-    elements.browserList.querySelectorAll('.browser-item').forEach(item => {
-        item.addEventListener('click', async () => {
-            elements.browserList.querySelectorAll('.browser-item').forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            await window.electronAPI.setSetting('browser', item.dataset.browser);
-        });
-    });
 }
 
 // Check binaries
@@ -284,16 +300,27 @@ async function checkBinaries() {
 // Check cookie status
 async function checkCookieStatus() {
     const status = await window.electronAPI.getCookieStatus();
+    const loginStatus = await window.electronAPI.checkLoginStatus();
     
-    if (status.hasCookies) {
+    if (status.hasCookies || loginStatus.isLoggedIn) {
         elements.cookieSyncStatus.classList.add('synced');
         elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '✅';
-        elements.cookieSyncText.textContent = `${status.cookieCount} çerez yüklü`;
+        
+        if (loginStatus.isLoggedIn) {
+            elements.cookieSyncText.textContent = `Giriş yapıldı (${status.cookieCount || loginStatus.cookieCount} çerez)`;
+        } else {
+            elements.cookieSyncText.textContent = `${status.cookieCount} çerez yüklü`;
+        }
+        
+        elements.youtubeLoginBtn.style.display = 'none';
+        elements.refreshCookiesBtn.style.display = 'inline-block';
         elements.deleteCookieBtn.style.display = 'inline-block';
     } else {
         elements.cookieSyncStatus.classList.remove('synced');
         elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '🔒';
-        elements.cookieSyncText.textContent = 'Çerez yüklenmedi';
+        elements.cookieSyncText.textContent = 'Giriş yapılmadı';
+        elements.youtubeLoginBtn.style.display = 'inline-block';
+        elements.refreshCookiesBtn.style.display = 'none';
         elements.deleteCookieBtn.style.display = 'none';
     }
 }

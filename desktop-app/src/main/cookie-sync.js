@@ -1,11 +1,6 @@
-const https = require('https');
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
-
-// API URL
-const API_BASE_URL = 'https://video-downloader-production-9a51.up.railway.app';
+const { app, BrowserWindow, session: electronSession } = require('electron');
 
 // Cookie file path
 const COOKIE_DIR = app.isPackaged 
@@ -21,114 +16,16 @@ function ensureCookieDir() {
     }
 }
 
-// Make HTTP request
-function makeRequest(url, options = {}) {
-    return new Promise((resolve, reject) => {
-        const urlObj = new URL(url);
-        const isHttps = urlObj.protocol === 'https:';
-        const lib = isHttps ? https : http;
-        
-        const reqOptions = {
-            hostname: urlObj.hostname,
-            port: urlObj.port || (isHttps ? 443 : 80),
-            path: urlObj.pathname + urlObj.search,
-            method: options.method || 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Agent': 'VideoDownloader-Desktop/1.0',
-                ...options.headers
-            }
-        };
-        
-        const req = lib.request(reqOptions, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', () => {
-                try {
-                    resolve({ status: res.statusCode, data: JSON.parse(data) });
-                } catch (e) {
-                    resolve({ status: res.statusCode, data: data });
-                }
-            });
-        });
-        
-        req.on('error', reject);
-        
-        if (options.body) {
-            req.write(JSON.stringify(options.body));
-        }
-        
-        req.end();
-    });
-}
-
-// Generate pairing code from website
-async function generatePairingCode() {
+// Get YouTube cookies from Electron session
+async function getYouTubeCookiesFromSession(ses) {
     try {
-        const response = await makeRequest(`${API_BASE_URL}/api/extension/generate-token`, {
-            method: 'POST'
-        });
+        const cookies = await ses.cookies.get({ domain: '.youtube.com' });
+        const googleCookies = await ses.cookies.get({ domain: '.google.com' });
         
-        if (response.status === 200 && response.data.success) {
-            return {
-                success: true,
-                pairingCode: response.data.pairing_code,
-                expiresIn: response.data.expires_in
-            };
-        }
-        
-        return { success: false, error: response.data.error || 'Pairing kodu alınamadı' };
+        return [...cookies, ...googleCookies];
     } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// Pair with website using pairing code
-async function pairWithWebsite(pairingCode) {
-    try {
-        const response = await makeRequest(`${API_BASE_URL}/api/extension/pair`, {
-            method: 'POST',
-            body: {
-                pairing_code: pairingCode,
-                browser: 'desktop-app'
-            }
-        });
-        
-        if (response.status === 200 && response.data.success) {
-            return {
-                success: true,
-                extensionToken: response.data.extension_token
-            };
-        }
-        
-        return { success: false, error: response.data.error || 'Eşleştirme başarısız' };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
-// Fetch cookies from website using extension token
-async function fetchCookiesFromWebsite(extensionToken) {
-    try {
-        // First verify the token
-        const verifyResponse = await makeRequest(`${API_BASE_URL}/api/extension/verify`, {
-            method: 'GET',
-            headers: {
-                'X-Extension-Token': extensionToken
-            }
-        });
-        
-        if (verifyResponse.status !== 200 || !verifyResponse.data.valid) {
-            return { success: false, error: 'Token geçersiz veya süresi dolmuş' };
-        }
-        
-        return {
-            success: true,
-            lastSync: verifyResponse.data.last_sync,
-            browser: verifyResponse.data.browser
-        };
-    } catch (error) {
-        return { success: false, error: error.message };
+        console.error('Failed to get cookies from session:', error);
+        return [];
     }
 }
 
@@ -139,7 +36,7 @@ function saveCookiesToFile(cookies) {
     const lines = [
         '# Netscape HTTP Cookie File',
         '# https://curl.haxx.se/rfc/cookie_spec.html',
-        '# This file was synced from Video Downloader Website',
+        '# This file was synced from Video Downloader Desktop App',
         ''
     ];
     
@@ -150,7 +47,7 @@ function saveCookiesToFile(cookies) {
         }
         
         const flag = domain.startsWith('.') ? 'TRUE' : 'FALSE';
-        const path = cookie.path || '/';
+        const cookiePath = cookie.path || '/';
         const secure = cookie.secure ? 'TRUE' : 'FALSE';
         let expiration = cookie.expirationDate || 0;
         if (expiration === null || expiration < 0) {
@@ -163,12 +60,172 @@ function saveCookiesToFile(cookies) {
         const value = cookie.value || '';
         
         if (name && domain) {
-            lines.push(`${domain}\t${flag}\t${path}\t${secure}\t${expiration}\t${name}\t${value}`);
+            lines.push(`${domain}\t${flag}\t${cookiePath}\t${secure}\t${expiration}\t${name}\t${value}`);
         }
     }
     
     fs.writeFileSync(COOKIE_FILE, lines.join('\n'));
     return COOKIE_FILE;
+}
+
+// Open YouTube login window and get cookies after login
+async function autoSyncCookies(mainWindow) {
+    return new Promise((resolve) => {
+        // Create a window for YouTube login
+        const authWindow = new BrowserWindow({
+            width: 500,
+            height: 700,
+            parent: mainWindow,
+            modal: true,
+            show: true,
+            title: 'YouTube Giriş Yap',
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                partition: 'persist:youtube-auth' // Persistent session for auth
+            }
+        });
+        
+        authWindow.setMenuBarVisibility(false);
+        
+        let resolved = false;
+        
+        // Load YouTube login page
+        authWindow.loadURL('https://accounts.google.com/ServiceLogin?service=youtube&passive=true&continue=https://www.youtube.com/signin?action_handle_signin=true');
+        
+        // Check for successful login
+        const checkLogin = async () => {
+            if (resolved) return;
+            
+            try {
+                const currentUrl = authWindow.webContents.getURL();
+                
+                // If we're on YouTube main page, login was successful
+                if (currentUrl.includes('youtube.com') && !currentUrl.includes('accounts.google.com') && !currentUrl.includes('signin')) {
+                    resolved = true;
+                    
+                    // Wait a bit for cookies to be set
+                    setTimeout(async () => {
+                        try {
+                            const ses = authWindow.webContents.session;
+                            const cookies = await getYouTubeCookiesFromSession(ses);
+                            
+                            if (cookies.length > 0) {
+                                saveCookiesToFile(cookies);
+                                authWindow.close();
+                                resolve({ 
+                                    success: true, 
+                                    cookieCount: cookies.length,
+                                    message: 'Çerezler başarıyla senkronize edildi!'
+                                });
+                            } else {
+                                authWindow.close();
+                                resolve({ 
+                                    success: false, 
+                                    error: 'Çerez bulunamadı. Lütfen tekrar deneyin.' 
+                                });
+                            }
+                        } catch (err) {
+                            authWindow.close();
+                            resolve({ success: false, error: err.message });
+                        }
+                    }, 2000);
+                }
+            } catch (err) {
+                // Window might be closed
+            }
+        };
+        
+        // Listen for navigation
+        authWindow.webContents.on('did-navigate', checkLogin);
+        authWindow.webContents.on('did-navigate-in-page', checkLogin);
+        authWindow.webContents.on('did-finish-load', checkLogin);
+        
+        // Handle window close
+        authWindow.on('closed', () => {
+            if (!resolved) {
+                resolved = true;
+                resolve({ 
+                    success: false, 
+                    error: 'Giriş penceresi kapatıldı' 
+                });
+            }
+        });
+    });
+}
+
+// Quick sync: Extract cookies from existing auth session (no login window)
+async function quickSyncFromSession() {
+    try {
+        // Get cookies from the persist partition
+        const ses = electronSession.fromPartition('persist:youtube-auth');
+        const cookies = await getYouTubeCookiesFromSession(ses);
+        
+        if (cookies.length > 0) {
+            // Check for login cookies
+            const hasLoginCookie = cookies.some(c => 
+                c.name === 'SID' || 
+                c.name === 'SSID' || 
+                c.name === 'LOGIN_INFO'
+            );
+            
+            if (hasLoginCookie) {
+                saveCookiesToFile(cookies);
+                return { 
+                    success: true, 
+                    cookieCount: cookies.length,
+                    message: 'Çerezler mevcut oturumdan alındı!'
+                };
+            }
+        }
+        
+        return { 
+            success: false, 
+            error: 'Kayıtlı oturum bulunamadı. Lütfen önce giriş yapın.' 
+        };
+    } catch (error) {
+        return { 
+            success: false, 
+            error: error.message 
+        };
+    }
+}
+
+// Check if user is logged in (has valid cookies in session)
+async function checkLoginStatus() {
+    try {
+        const ses = electronSession.fromPartition('persist:youtube-auth');
+        const cookies = await ses.cookies.get({ domain: '.youtube.com' });
+        
+        // Check for login cookies
+        const hasLoginCookie = cookies.some(c => 
+            c.name === 'SID' || 
+            c.name === 'SSID' || 
+            c.name === 'LOGIN_INFO'
+        );
+        
+        return {
+            isLoggedIn: hasLoginCookie,
+            cookieCount: cookies.length
+        };
+    } catch (error) {
+        return {
+            isLoggedIn: false,
+            cookieCount: 0
+        };
+    }
+}
+
+// Clear auth session and cookies
+async function clearAuthSession() {
+    try {
+        const ses = electronSession.fromPartition('persist:youtube-auth');
+        await ses.clearStorageData();
+        deleteCookieFile();
+        return { success: true, message: 'Oturum ve çerezler temizlendi.' };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 // Load cookies from file
@@ -211,25 +268,6 @@ function getCookieFilePath() {
     return null;
 }
 
-// Import cookies from browser extension format (JSON array)
-function importCookiesFromJson(cookiesJson) {
-    try {
-        const cookies = typeof cookiesJson === 'string' ? JSON.parse(cookiesJson) : cookiesJson;
-        if (!Array.isArray(cookies)) {
-            return { success: false, error: 'Geçersiz cookie formatı' };
-        }
-        
-        const filePath = saveCookiesToFile(cookies);
-        return { 
-            success: true, 
-            cookieCount: cookies.length,
-            filePath 
-        };
-    } catch (error) {
-        return { success: false, error: error.message };
-    }
-}
-
 // Import cookies from Netscape format file
 function importCookiesFromNetscape(content) {
     ensureCookieDir();
@@ -253,14 +291,14 @@ function importCookiesFromNetscape(content) {
 }
 
 module.exports = {
-    generatePairingCode,
-    pairWithWebsite,
-    fetchCookiesFromWebsite,
+    autoSyncCookies,
+    quickSyncFromSession,
+    checkLoginStatus,
+    clearAuthSession,
     saveCookiesToFile,
     loadCookiesFromFile,
     deleteCookieFile,
     getCookieFilePath,
-    importCookiesFromJson,
     importCookiesFromNetscape,
     COOKIE_FILE
 };
