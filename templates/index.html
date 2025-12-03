@@ -1,1287 +1,1395 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Video İndirici</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            color: #fff;
-            padding: 20px;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        min-height: 100vh;
+        color: #fff;
+        padding: 20px;
+      }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
 
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 2.5rem;
+      }
+
+      .subtitle {
+        text-align: center;
+        color: #888;
+        margin-bottom: 30px;
+      }
+
+      .search-box {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 15px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        background: #2a2a4a;
+        color: #fff;
+      }
+
+      input[type="text"]::placeholder {
+        color: #666;
+      }
+
+      .btn-primary {
+        padding: 15px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.2s, opacity 0.2s;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        opacity: 0.9;
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .error {
+        background: #ff4757;
+        color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .success {
+        background: #2ed573;
+        color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        display: none;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #2a2a4a;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .video-info {
+        background: #2a2a4a;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: none;
+      }
+
+      .video-header {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+
+      .thumbnail {
+        width: 200px;
+        height: 112px;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+
+      .video-details h2 {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+
+      .video-meta {
+        display: flex;
+        gap: 15px;
+        color: #888;
+        font-size: 0.9rem;
+        flex-wrap: wrap;
+      }
+
+      .format-section h3 {
+        margin-bottom: 15px;
+        color: #aaa;
+      }
+
+      .format-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .format-item {
+        background: #3a3a5a;
+        padding: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+      }
+
+      .format-item:hover {
+        background: #4a4a6a;
+      }
+
+      .format-item.selected {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .format-item .quality {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .format-item .ext {
+        font-size: 0.8rem;
+        color: #aaa;
+      }
+
+      .format-item.selected .ext {
+        color: #ddd;
+      }
+
+      .download-section {
+        text-align: center;
+      }
+
+      .progress-container {
+        margin-top: 20px;
+        display: none;
+      }
+
+      .progress-bar {
+        background: #1a1a2e;
+        border-radius: 10px;
+        height: 20px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      .progress-text {
+        text-align: center;
+        margin-top: 10px;
+        color: #888;
+      }
+
+      .supported-sites {
+        text-align: center;
+        margin-top: 40px;
+      }
+
+      .supported-sites h3 {
+        color: #666;
+        margin-bottom: 15px;
+        font-weight: normal;
+      }
+
+      .sites-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .site-tag {
+        padding: 5px 12px;
+        background: #3a3a5a;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        color: #aaa;
+      }
+
+      /* Cookie Section */
+      .cookie-section {
+        background: #2a2a4a;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 30px;
+      }
+
+      .cookie-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .cookie-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .cookie-status.active {
+        color: #2ed573;
+      }
+
+      .cookie-status.inactive {
+        color: #888;
+      }
+
+      /* Cookie Tabs */
+      .cookie-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 15px;
+        background: #1a1a2e;
+        border-radius: 8px;
+        padding: 4px;
+      }
+
+      .cookie-tab {
+        flex: 1;
+        padding: 10px 15px;
+        border: none;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .cookie-tab:hover {
+        color: #fff;
+      }
+
+      .cookie-tab.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+      }
+
+      .cookie-tab-content {
+        display: none;
+      }
+
+      .cookie-tab-content.active {
+        display: block;
+      }
+
+      .cookie-upload-area {
+        border: 2px dashed #4a4a6a;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .cookie-upload-area:hover {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+      }
+
+      .cookie-upload-area input[type="file"] {
+        display: none;
+      }
+
+      .cookie-info {
+        background: #1a1a2e;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        font-size: 0.9rem;
+        color: #888;
+      }
+
+      .cookie-info a {
+        color: #667eea;
+      }
+
+      /* Extension Section */
+      .extension-pairing {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .pairing-code-display {
+        background: #1a1a2e;
+        border-radius: 12px;
+        padding: 30px;
+        margin: 20px 0;
+      }
+
+      .pairing-code {
+        font-size: 2.5rem;
+        font-weight: bold;
+        letter-spacing: 8px;
+        color: #667eea;
+        font-family: monospace;
+      }
+
+      .pairing-timer {
+        color: #888;
+        font-size: 0.9rem;
+        margin-top: 10px;
+      }
+
+      .pairing-timer.warning {
+        color: #ffa502;
+      }
+
+      .pairing-timer.expired {
+        color: #ff4757;
+      }
+
+      .btn-secondary {
+        padding: 12px 24px;
+        background: #3a3a5a;
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-secondary:hover {
+        background: #4a4a6a;
+      }
+
+      .connected-extensions {
+        margin-top: 20px;
+      }
+
+      .extension-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #1a1a2e;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+      }
+
+      .extension-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .extension-browser {
+        font-size: 1.2rem;
+      }
+
+      .extension-details {
+        font-size: 0.85rem;
+      }
+
+      .extension-details .browser-name {
+        color: #fff;
+        font-weight: 500;
+      }
+
+      .extension-details .last-sync {
+        color: #888;
+      }
+
+      .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        background: #ff4757;
+        border: none;
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      .btn-small:hover {
+        background: #ff6b7a;
+      }
+
+      .extension-download-links {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #3a3a5a;
+      }
+
+      .extension-download-links h4 {
+        color: #888;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        font-weight: normal;
+      }
+
+      .download-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .download-buttons a {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #3a3a5a;
+        border-radius: 6px;
+        color: #fff;
+        text-decoration: none;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+
+      .download-buttons a:hover {
+        background: #4a4a6a;
+      }
+
+      .btn-delete {
+        padding: 8px 16px;
+        background: #ff4757;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .btn-delete:hover {
+        background: #ff6b7a;
+      }
+
+      @media (max-width: 600px) {
         h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5rem;
+          font-size: 1.8rem;
         }
-
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-        }
-
         .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
+          flex-direction: column;
         }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 15px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            background: #2a2a4a;
-            color: #fff;
-        }
-
-        input[type="text"]::placeholder {
-            color: #666;
-        }
-
-        .btn-primary {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            transition: transform 0.2s, opacity 0.2s;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            opacity: 0.9;
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .error {
-            background: #ff4757;
-            color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success {
-            background: #2ed573;
-            color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            display: none;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #2a2a4a;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .video-info {
-            background: #2a2a4a;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            display: none;
-        }
-
         .video-header {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
+          flex-direction: column;
         }
-
         .thumbnail {
-            width: 200px;
-            height: 112px;
-            object-fit: cover;
-            border-radius: 8px;
+          width: 100%;
+          height: auto;
         }
-
-        .video-details h2 {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        .video-meta {
-            display: flex;
-            gap: 15px;
-            color: #888;
-            font-size: 0.9rem;
-            flex-wrap: wrap;
-        }
-
-        .format-section h3 {
-            margin-bottom: 15px;
-            color: #aaa;
-        }
-
         .format-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
+          grid-template-columns: repeat(2, 1fr);
         }
-
-        .format-item {
-            background: #3a3a5a;
-            padding: 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .format-item:hover {
-            background: #4a4a6a;
-        }
-
-        .format-item.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .format-item .quality {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .format-item .ext {
-            font-size: 0.8rem;
-            color: #aaa;
-        }
-
-        .format-item.selected .ext {
-            color: #ddd;
-        }
-
-        .download-section {
-            text-align: center;
-        }
-
-        .progress-container {
-            margin-top: 20px;
-            display: none;
-        }
-
-        .progress-bar {
-            background: #1a1a2e;
-            border-radius: 10px;
-            height: 20px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        .progress-text {
-            text-align: center;
-            margin-top: 10px;
-            color: #888;
-        }
-
-        .supported-sites {
-            text-align: center;
-            margin-top: 40px;
-        }
-
-        .supported-sites h3 {
-            color: #666;
-            margin-bottom: 15px;
-            font-weight: normal;
-        }
-
-        .sites-list {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .site-tag {
-            padding: 5px 12px;
-            background: #3a3a5a;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            color: #aaa;
-        }
-
-        /* Cookie Section */
-        .cookie-section {
-            background: #2a2a4a;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .cookie-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .cookie-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .cookie-status.active {
-            color: #2ed573;
-        }
-
-        .cookie-status.inactive {
-            color: #888;
-        }
-
-        /* Cookie Tabs */
-        .cookie-tabs {
-            display: flex;
-            gap: 0;
-            margin-bottom: 15px;
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 4px;
-        }
-
-        .cookie-tab {
-            flex: 1;
-            padding: 10px 15px;
-            border: none;
-            background: transparent;
-            color: #888;
-            cursor: pointer;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .cookie-tab:hover {
-            color: #fff;
-        }
-
-        .cookie-tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-        }
-
-        .cookie-tab-content {
-            display: none;
-        }
-
-        .cookie-tab-content.active {
-            display: block;
-        }
-
-        .cookie-upload-area {
-            border: 2px dashed #4a4a6a;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .cookie-upload-area:hover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .cookie-upload-area input[type="file"] {
-            display: none;
-        }
-
-        .cookie-info {
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            font-size: 0.9rem;
-            color: #888;
-        }
-
-        .cookie-info a {
-            color: #667eea;
-        }
-
-        /* Extension Section */
-        .extension-pairing {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .pairing-code-display {
-            background: #1a1a2e;
-            border-radius: 12px;
-            padding: 30px;
-            margin: 20px 0;
-        }
-
-        .pairing-code {
-            font-size: 2.5rem;
-            font-weight: bold;
-            letter-spacing: 8px;
-            color: #667eea;
-            font-family: monospace;
-        }
-
-        .pairing-timer {
-            color: #888;
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
-
-        .pairing-timer.warning {
-            color: #ffa502;
-        }
-
-        .pairing-timer.expired {
-            color: #ff4757;
-        }
-
-        .btn-secondary {
-            padding: 12px 24px;
-            background: #3a3a5a;
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background: #4a4a6a;
-        }
-
-        .connected-extensions {
-            margin-top: 20px;
-        }
-
-        .extension-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a2e;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .extension-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .extension-browser {
-            font-size: 1.2rem;
-        }
-
-        .extension-details {
-            font-size: 0.85rem;
-        }
-
-        .extension-details .browser-name {
-            color: #fff;
-            font-weight: 500;
-        }
-
-        .extension-details .last-sync {
-            color: #888;
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            background: #ff4757;
-            border: none;
-            border-radius: 4px;
-            color: #fff;
-            cursor: pointer;
-        }
-
-        .btn-small:hover {
-            background: #ff6b7a;
-        }
-
-        .extension-download-links {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #3a3a5a;
-        }
-
-        .extension-download-links h4 {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-            font-weight: normal;
-        }
-
-        .download-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .download-buttons a {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: #3a3a5a;
-            border-radius: 6px;
-            color: #fff;
-            text-decoration: none;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-
-        .download-buttons a:hover {
-            background: #4a4a6a;
-        }
-
-        .btn-delete {
-            padding: 8px 16px;
-            background: #ff4757;
-            border: none;
-            border-radius: 6px;
-            color: #fff;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-delete:hover {
-            background: #ff6b7a;
-        }
-
-        @media (max-width: 600px) {
-            h1 { font-size: 1.8rem; }
-            .search-box { flex-direction: column; }
-            .video-header { flex-direction: column; }
-            .thumbnail { width: 100%; height: auto; }
-            .format-list { grid-template-columns: repeat(2, 1fr); }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>🎬 Video İndirici</h1>
-        <p class="subtitle">YouTube ve diğer sitelerden video indirin</p>
+      <h1>🎬 Video İndirici</h1>
+      <p class="subtitle">YouTube ve diğer sitelerden video indirin</p>
 
-        <!-- Cookie Section -->
-        <div class="cookie-section">
-            <div class="cookie-header">
-                <div class="cookie-status" id="cookieStatus">
-                    <span>🍪 Cookie Durumu:</span>
-                    <strong id="cookieStatusText">Yüklenmedi</strong>
-                </div>
-                <button class="btn-delete" id="deleteCookieBtn" style="display:none;" onclick="deleteCookie()">
-                    🗑️ Cookie Sil
-                </button>
-            </div>
-
-            <!-- Cookie Tabs -->
-            <div class="cookie-tabs">
-                <button class="cookie-tab active" onclick="switchCookieTab('upload')">📁 Dosya Yükle</button>
-                <button class="cookie-tab" onclick="switchCookieTab('extension')">🔌 Extension ile Bağlan</button>
-            </div>
-
-            <!-- Tab 1: Dosya Yükle -->
-            <div id="cookie-tab-upload" class="cookie-tab-content active">
-                <div class="cookie-upload-area" id="cookieUploadArea" onclick="document.getElementById('cookieFile').click()">
-                    <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
-                    <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
-                        +18 videolar için gerekli (Netscape formatında .txt dosyası)
-                    </p>
-                </div>
-                
-                <div class="cookie-info">
-                    <strong>Cookie dosyası nasıl alınır?</strong><br><br>
-                    1. Tarayıcınıza <a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank">Get cookies.txt LOCALLY</a> eklentisini yükleyin<br>
-                    2. YouTube'a giriş yapın<br>
-                    3. Eklenti ikonuna tıklayıp "Export" butonuna basın<br>
-                    4. İndirilen .txt dosyasını buraya yükleyin
-                </div>
-            </div>
-
-            <!-- Tab 2: Extension ile Bağlan -->
-            <div id="cookie-tab-extension" class="cookie-tab-content">
-                <div class="extension-pairing">
-                    <p style="color: #888; margin-bottom: 15px;">
-                        Browser extension'ımızı kullanarak cookie'lerinizi otomatik senkronize edin.
-                    </p>
-
-                    <!-- Pairing Code Display -->
-                    <div id="pairingCodeSection" style="display: none;">
-                        <div class="pairing-code-display">
-                            <div class="pairing-code" id="pairingCode">------</div>
-                            <div class="pairing-timer" id="pairingTimer">10:00 kaldı</div>
-                        </div>
-                        <p style="color: #888; font-size: 0.85rem;">
-                            Bu kodu extension popup'ına girin
-                        </p>
-                    </div>
-
-                    <button class="btn-primary" id="generateCodeBtn" onclick="generatePairingCode()">
-                        🔑 Pairing Kodu Oluştur
-                    </button>
-
-                    <!-- Connected Extensions -->
-                    <div class="connected-extensions" id="connectedExtensions" style="display: none;">
-                        <h4 style="color: #888; margin-bottom: 10px; font-weight: normal;">Bağlı Extension'lar:</h4>
-                        <div id="extensionList"></div>
-                    </div>
-
-                    <!-- Extension Download Links -->
-                    <div class="extension-download-links">
-                        <h4>Extension'ı İndirin:</h4>
-                        <div class="download-buttons">
-                            <a href="#" target="_blank">
-                                <span>🌐</span> Chrome
-                            </a>
-                            <a href="#" target="_blank">
-                                <span>🦊</span> Firefox
-                            </a>
-                            <a href="#" target="_blank">
-                                <span>🦁</span> Brave
-                            </a>
-                            <a href="#" target="_blank">
-                                <span>🔴</span> Opera
-                            </a>
-                        </div>
-                        <p style="color: #666; font-size: 0.8rem; margin-top: 10px;">
-                            * Extension yakında mağazalarda yayınlanacak
-                        </p>
-                    </div>
-                </div>
-            </div>
+      <!-- Cookie Section -->
+      <div class="cookie-section">
+        <div class="cookie-header">
+          <div class="cookie-status" id="cookieStatus">
+            <span>🍪 Cookie Durumu:</span>
+            <strong id="cookieStatusText">Yüklenmedi</strong>
+          </div>
+          <button
+            class="btn-delete"
+            id="deleteCookieBtn"
+            style="display: none"
+            onclick="deleteCookie()"
+          >
+            🗑️ Cookie Sil
+          </button>
         </div>
 
-        <div class="error" id="error"></div>
-        <div class="success" id="success"></div>
-
-        <div class="search-box">
-            <input type="text" id="urlInput" placeholder="Video URL'sini yapıştırın (örn: https://youtube.com/watch?v=...)">
-            <button class="btn-primary" id="fetchBtn" onclick="fetchVideoInfo()">Bilgi Al</button>
+        <!-- Cookie Tabs -->
+        <div class="cookie-tabs">
+          <button class="cookie-tab active" onclick="switchCookieTab('upload')">
+            📁 Dosya Yükle
+          </button>
+          <button class="cookie-tab" onclick="switchCookieTab('extension')">
+            🔌 Extension ile Bağlan
+          </button>
         </div>
 
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Video bilgileri alınıyor...</p>
+        <!-- Tab 1: Dosya Yükle -->
+        <div id="cookie-tab-upload" class="cookie-tab-content active">
+          <div
+            class="cookie-upload-area"
+            id="cookieUploadArea"
+            onclick="document.getElementById('cookieFile').click()"
+          >
+            <input
+              type="file"
+              id="cookieFile"
+              accept=".txt"
+              onchange="uploadCookie(this)"
+            />
+            <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 10px">
+              +18 videolar için gerekli (Netscape formatında .txt dosyası)
+            </p>
+          </div>
+
+          <div class="cookie-info">
+            <strong>Cookie dosyası nasıl alınır?</strong><br /><br />
+            1. Tarayıcınıza
+            <a
+              href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc"
+              target="_blank"
+              >Get cookies.txt LOCALLY</a
+            >
+            eklentisini yükleyin<br />
+            2. YouTube'a giriş yapın<br />
+            3. Eklenti ikonuna tıklayıp "Export" butonuna basın<br />
+            4. İndirilen .txt dosyasını buraya yükleyin
+          </div>
         </div>
 
-        <div class="video-info" id="videoInfo">
-            <div class="video-header">
-                <img class="thumbnail" id="thumbnail" src="" alt="Thumbnail">
-                <div class="video-details">
-                    <h2 id="videoTitle"></h2>
-                    <div class="video-meta">
-                        <span id="uploader"></span>
-                        <span id="duration"></span>
-                        <span id="views"></span>
-                    </div>
-                </div>
+        <!-- Tab 2: Extension ile Bağlan -->
+        <div id="cookie-tab-extension" class="cookie-tab-content">
+          <div class="extension-pairing">
+            <p style="color: #888; margin-bottom: 15px">
+              Browser extension'ımızı kullanarak cookie'lerinizi otomatik
+              senkronize edin.
+            </p>
+
+            <!-- Pairing Code Display -->
+            <div id="pairingCodeSection" style="display: none">
+              <div class="pairing-code-display">
+                <div class="pairing-code" id="pairingCode">------</div>
+                <div class="pairing-timer" id="pairingTimer">10:00 kaldı</div>
+              </div>
+              <p style="color: #888; font-size: 0.85rem">
+                Bu kodu extension popup'ına girin
+              </p>
             </div>
 
-            <div class="format-section">
-                <h3>Format Seçin:</h3>
-                <div class="format-list" id="formatList"></div>
+            <button
+              class="btn-primary"
+              id="generateCodeBtn"
+              onclick="generatePairingCode()"
+            >
+              🔑 Pairing Kodu Oluştur
+            </button>
+
+            <!-- Connected Extensions -->
+            <div
+              class="connected-extensions"
+              id="connectedExtensions"
+              style="display: none"
+            >
+              <h4 style="color: #888; margin-bottom: 10px; font-weight: normal">
+                Bağlı Extension'lar:
+              </h4>
+              <div id="extensionList"></div>
             </div>
 
-            <div class="download-section">
-                <button class="btn-primary" id="downloadBtn" onclick="startDownload()">📥 İndir</button>
+            <!-- Extension Download Links -->
+            <div class="extension-download-links">
+              <h4>Extension'ı İndirin:</h4>
+              <div class="download-buttons">
+                <a href="#" target="_blank"> <span>🌐</span> Chrome </a>
+                <a href="#" target="_blank"> <span>🦊</span> Firefox </a>
+                <a href="#" target="_blank"> <span>🦁</span> Brave </a>
+                <a href="#" target="_blank"> <span>🔴</span> Opera </a>
+              </div>
+              <p style="color: #666; font-size: 0.8rem; margin-top: 10px">
+                * Extension yakında mağazalarda yayınlanacak
+              </p>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <p class="progress-text" id="progressText">Hazırlanıyor...</p>
+      <div class="error" id="error"></div>
+      <div class="success" id="success"></div>
+
+      <div class="search-box">
+        <input
+          type="text"
+          id="urlInput"
+          placeholder="Video URL'sini yapıştırın (örn: https://youtube.com/watch?v=...)"
+        />
+        <button class="btn-primary" id="fetchBtn" onclick="fetchVideoInfo()">
+          Bilgi Al
+        </button>
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Video bilgileri alınıyor...</p>
+      </div>
+
+      <div class="video-info" id="videoInfo">
+        <div class="video-header">
+          <img class="thumbnail" id="thumbnail" src="" alt="Thumbnail" />
+          <div class="video-details">
+            <h2 id="videoTitle"></h2>
+            <div class="video-meta">
+              <span id="uploader"></span>
+              <span id="duration"></span>
+              <span id="views"></span>
             </div>
+          </div>
         </div>
 
-        <div class="supported-sites">
-            <h3>Desteklenen Siteler:</h3>
-            <div class="sites-list">
-                <span class="site-tag">YouTube</span>
-                <span class="site-tag">Twitter/X</span>
-                <span class="site-tag">Instagram</span>
-                <span class="site-tag">TikTok</span>
-                <span class="site-tag">Facebook</span>
-                <span class="site-tag">Vimeo</span>
-                <span class="site-tag">Dailymotion</span>
-                <span class="site-tag">Reddit</span>
-                <span class="site-tag">+ 1000'den fazla site</span>
-            </div>
+        <div class="format-section">
+          <h3>Format Seçin:</h3>
+          <div class="format-list" id="formatList"></div>
         </div>
+
+        <div class="download-section">
+          <button
+            class="btn-primary"
+            id="downloadBtn"
+            onclick="startDownload()"
+          >
+            📥 İndir
+          </button>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-text" id="progressText">Hazırlanıyor...</p>
+        </div>
+      </div>
+
+      <div class="supported-sites">
+        <h3>Desteklenen Siteler:</h3>
+        <div class="sites-list">
+          <span class="site-tag">YouTube</span>
+          <span class="site-tag">Twitter/X</span>
+          <span class="site-tag">Instagram</span>
+          <span class="site-tag">TikTok</span>
+          <span class="site-tag">Facebook</span>
+          <span class="site-tag">Vimeo</span>
+          <span class="site-tag">Dailymotion</span>
+          <span class="site-tag">Reddit</span>
+          <span class="site-tag">+ 1000'den fazla site</span>
+        </div>
+      </div>
     </div>
 
     <script>
-        let currentUrl = '';
-        let selectedFormat = 'best';
-        let pairingTimerInterval = null;
-        let cookieSyncPollInterval = null;
-        let extensionId = null;
+      let currentUrl = "";
+      let selectedFormat = "best";
+      let pairingTimerInterval = null;
+      let cookieSyncPollInterval = null;
+      let extensionId = null;
 
-        // YouTube URL validation regex (XSS önleme için)
-        const YOUTUBE_URL_REGEX = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+|youtube\.com\/shorts\/[\w-]+)/;
+      // YouTube URL validation regex (XSS önleme için)
+      const YOUTUBE_URL_REGEX =
+        /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+|youtube\.com\/shorts\/[\w-]+)/;
 
-        // ============ URL Parameter Handling ============
-        function handleUrlParameters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const videoUrl = urlParams.get('url');
-            const autoPair = urlParams.get('auto_pair');
-            const extId = urlParams.get('ext_id');
-            const cookiesReady = urlParams.get('cookies_ready');
+      // ============ URL Parameter Handling ============
+      function handleUrlParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoUrl = urlParams.get("url");
+        const autoPair = urlParams.get("auto_pair");
+        const extId = urlParams.get("ext_id");
+        const cookiesReady = urlParams.get("cookies_ready");
 
-            // Extension ID'yi kaydet
-            if (extId) {
-                extensionId = extId;
+        // Extension ID'yi kaydet
+        if (extId) {
+          extensionId = extId;
+        }
+
+        // Video URL'sini validate et ve doldur
+        if (videoUrl) {
+          const decodedUrl = decodeURIComponent(videoUrl);
+          if (sanitizeYouTubeUrl(decodedUrl)) {
+            document.getElementById("urlInput").value = decodedUrl;
+            currentUrl = decodedUrl;
+
+            // Cookies zaten hazırsa direkt video bilgisi çek
+            if (cookiesReady === "true") {
+              // Kısa bir gecikme ile video bilgisini çek
+              setTimeout(() => {
+                fetchVideoInfo();
+              }, 500);
+              return;
             }
+          }
+        }
 
-            // Video URL'sini validate et ve doldur
-            if (videoUrl) {
-                const decodedUrl = decodeURIComponent(videoUrl);
-                if (sanitizeYouTubeUrl(decodedUrl)) {
-                    document.getElementById('urlInput').value = decodedUrl;
-                    currentUrl = decodedUrl;
-                    
-                    // Cookies zaten hazırsa direkt video bilgisi çek
-                    if (cookiesReady === 'true') {
-                        // Kısa bir gecikme ile video bilgisini çek
-                        setTimeout(() => {
-                            fetchVideoInfo();
-                        }, 500);
-                        return;
-                    }
+        // Auto-pair modunu başlat
+        if (autoPair === "true" && extId) {
+          // Extension tab'ına geç ve pairing kodu oluştur
+          switchCookieTab("extension");
+          setTimeout(() => {
+            generatePairingCodeAndNotify();
+          }, 300);
+        }
+      }
+
+      // YouTube URL'sini validate et (XSS önleme)
+      function sanitizeYouTubeUrl(url) {
+        if (!url) return null;
+
+        // Sadece YouTube URL'lerine izin ver
+        if (!YOUTUBE_URL_REGEX.test(url)) {
+          console.warn("Invalid YouTube URL rejected:", url);
+          return null;
+        }
+
+        return url;
+      }
+
+      // Pairing kodu oluştur ve extension'a bildir
+      async function generatePairingCodeAndNotify() {
+        const btn = document.getElementById("generateCodeBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Oluşturuluyor...";
+
+        try {
+          const response = await fetch("/api/extension/generate-token", {
+            method: "POST",
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Kod oluşturulamadı");
+          }
+
+          // Kodu göster
+          document.getElementById("pairingCode").textContent =
+            data.pairing_code;
+          document.getElementById("pairingCodeSection").style.display = "block";
+          btn.textContent = "🔄 Yeni Kod Oluştur";
+
+          // Geri sayımı başlat
+          startPairingTimer(data.expires_in);
+
+          // Extension'a pairing kodunu gönder
+          if (extensionId) {
+            sendPairingCodeToExtension(data.pairing_code);
+          }
+
+          // Cookie sync için polling başlat
+          startCookieSyncPolling();
+        } catch (error) {
+          showError(error.message);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // Extension'a pairing kodunu gönder
+      function sendPairingCodeToExtension(code) {
+        if (!extensionId) {
+          console.log("No extension ID available");
+          return;
+        }
+
+        try {
+          // Chrome extension API kullanarak mesaj gönder
+          if (
+            typeof chrome !== "undefined" &&
+            chrome.runtime &&
+            chrome.runtime.sendMessage
+          ) {
+            chrome.runtime.sendMessage(
+              extensionId,
+              {
+                type: "PAIRING_CODE",
+                code: code,
+                serverUrl: window.location.origin,
+              },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.log(
+                    "Could not send to extension:",
+                    chrome.runtime.lastError.message
+                  );
+                } else if (response && response.received) {
+                  console.log("Pairing code sent to extension successfully");
+                  showSuccess("Pairing kodu extension'a gönderildi!");
                 }
-            }
+              }
+            );
+          }
+        } catch (error) {
+          console.error("Error sending pairing code to extension:", error);
+        }
+      }
 
-            // Auto-pair modunu başlat
-            if (autoPair === 'true' && extId) {
-                // Extension tab'ına geç ve pairing kodu oluştur
-                switchCookieTab('extension');
+      // Cookie sync için polling
+      function startCookieSyncPolling() {
+        // Önceki polling'i temizle
+        if (cookieSyncPollInterval) {
+          clearInterval(cookieSyncPollInterval);
+        }
+
+        let pollCount = 0;
+        const maxPolls = 30; // 60 saniye (2 sn x 30)
+
+        cookieSyncPollInterval = setInterval(async () => {
+          pollCount++;
+
+          try {
+            const response = await fetch("/api/cookie/status");
+            const data = await response.json();
+
+            if (data.has_cookies) {
+              // Cookie'ler senkronize edildi!
+              clearInterval(cookieSyncPollInterval);
+              showSuccess(
+                "Cookie'ler senkronize edildi! Video bilgisi alınıyor..."
+              );
+
+              // Video bilgisini çek
+              if (currentUrl) {
                 setTimeout(() => {
-                    generatePairingCodeAndNotify();
-                }, 300);
+                  fetchVideoInfo();
+                }, 500);
+              }
             }
+          } catch (error) {
+            console.error("Cookie polling error:", error);
+          }
+
+          // Timeout
+          if (pollCount >= maxPolls) {
+            clearInterval(cookieSyncPollInterval);
+            showError(
+              "Cookie senkronizasyonu zaman aşımına uğradı. Lütfen manuel olarak deneyin."
+            );
+          }
+        }, 2000);
+      }
+
+      // ============ Cookie Tab Switching ============
+      function switchCookieTab(tab) {
+        // Tab butonlarını güncelle
+        document.querySelectorAll(".cookie-tab").forEach((btn, index) => {
+          btn.classList.remove("active");
+          if (
+            (tab === "upload" && index === 0) ||
+            (tab === "extension" && index === 1)
+          ) {
+            btn.classList.add("active");
+          }
+        });
+
+        // Tab içeriklerini güncelle
+        document
+          .querySelectorAll(".cookie-tab-content")
+          .forEach((content) => content.classList.remove("active"));
+        document.getElementById(`cookie-tab-${tab}`).classList.add("active");
+
+        // Extension tab'ına geçildiğinde bağlı extension'ları yükle
+        if (tab === "extension") {
+          loadConnectedExtensions();
+        }
+      }
+
+      // ============ Extension Pairing ============
+      async function generatePairingCode() {
+        // Eğer extensionId varsa, bildirim gönderen versiyonu kullan
+        if (extensionId) {
+          return generatePairingCodeAndNotify();
         }
 
-        // YouTube URL'sini validate et (XSS önleme)
-        function sanitizeYouTubeUrl(url) {
-            if (!url) return null;
-            
-            // Sadece YouTube URL'lerine izin ver
-            if (!YOUTUBE_URL_REGEX.test(url)) {
-                console.warn('Invalid YouTube URL rejected:', url);
-                return null;
-            }
-            
-            return url;
+        const btn = document.getElementById("generateCodeBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Oluşturuluyor...";
+
+        try {
+          const response = await fetch("/api/extension/generate-token", {
+            method: "POST",
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Kod oluşturulamadı");
+          }
+
+          // Kodu göster
+          document.getElementById("pairingCode").textContent =
+            data.pairing_code;
+          document.getElementById("pairingCodeSection").style.display = "block";
+          btn.textContent = "🔄 Yeni Kod Oluştur";
+
+          // Geri sayımı başlat
+          startPairingTimer(data.expires_in);
+
+          // Cookie sync için polling başlat (manuel kullanım için de)
+          startCookieSyncPolling();
+        } catch (error) {
+          showError(error.message);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function startPairingTimer(seconds) {
+        // Önceki timer'ı temizle
+        if (pairingTimerInterval) {
+          clearInterval(pairingTimerInterval);
         }
 
-        // Pairing kodu oluştur ve extension'a bildir
-        async function generatePairingCodeAndNotify() {
-            const btn = document.getElementById('generateCodeBtn');
-            btn.disabled = true;
-            btn.textContent = '⏳ Oluşturuluyor...';
+        let remaining = seconds;
+        const timerEl = document.getElementById("pairingTimer");
 
-            try {
-                const response = await fetch('/api/extension/generate-token', {
-                    method: 'POST'
-                });
+        function updateTimer() {
+          const mins = Math.floor(remaining / 60);
+          const secs = remaining % 60;
+          timerEl.textContent = `${mins}:${secs
+            .toString()
+            .padStart(2, "0")} kaldı`;
 
-                const data = await response.json();
+          // Uyarı renkleri
+          if (remaining <= 60) {
+            timerEl.className = "pairing-timer warning";
+          } else {
+            timerEl.className = "pairing-timer";
+          }
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Kod oluşturulamadı');
-                }
+          if (remaining <= 0) {
+            timerEl.textContent = "Süre doldu! Yeni kod oluşturun.";
+            timerEl.className = "pairing-timer expired";
+            clearInterval(pairingTimerInterval);
+          }
 
-                // Kodu göster
-                document.getElementById('pairingCode').textContent = data.pairing_code;
-                document.getElementById('pairingCodeSection').style.display = 'block';
-                btn.textContent = '🔄 Yeni Kod Oluştur';
-
-                // Geri sayımı başlat
-                startPairingTimer(data.expires_in);
-
-                // Extension'a pairing kodunu gönder
-                if (extensionId) {
-                    sendPairingCodeToExtension(data.pairing_code);
-                }
-
-                // Cookie sync için polling başlat
-                startCookieSyncPolling();
-
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                btn.disabled = false;
-            }
+          remaining--;
         }
 
-        // Extension'a pairing kodunu gönder
-        function sendPairingCodeToExtension(code) {
-            if (!extensionId) {
-                console.log('No extension ID available');
-                return;
-            }
+        updateTimer();
+        pairingTimerInterval = setInterval(updateTimer, 1000);
+      }
 
-            try {
-                // Chrome extension API kullanarak mesaj gönder
-                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-                    chrome.runtime.sendMessage(extensionId, {
-                        type: 'PAIRING_CODE',
-                        code: code,
-                        serverUrl: window.location.origin
-                    }, (response) => {
-                        if (chrome.runtime.lastError) {
-                            console.log('Could not send to extension:', chrome.runtime.lastError.message);
-                        } else if (response && response.received) {
-                            console.log('Pairing code sent to extension successfully');
-                            showSuccess('Pairing kodu extension\'a gönderildi!');
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error sending pairing code to extension:', error);
-            }
-        }
+      async function loadConnectedExtensions() {
+        try {
+          const response = await fetch("/api/extension/list");
+          const data = await response.json();
 
-        // Cookie sync için polling
-        function startCookieSyncPolling() {
-            // Önceki polling'i temizle
-            if (cookieSyncPollInterval) {
-                clearInterval(cookieSyncPollInterval);
-            }
+          const container = document.getElementById("connectedExtensions");
+          const list = document.getElementById("extensionList");
 
-            let pollCount = 0;
-            const maxPolls = 30; // 60 saniye (2 sn x 30)
-
-            cookieSyncPollInterval = setInterval(async () => {
-                pollCount++;
-
-                try {
-                    const response = await fetch('/api/cookie/status');
-                    const data = await response.json();
-
-                    if (data.has_cookies) {
-                        // Cookie'ler senkronize edildi!
-                        clearInterval(cookieSyncPollInterval);
-                        showSuccess('Cookie\'ler senkronize edildi! Video bilgisi alınıyor...');
-                        
-                        // Video bilgisini çek
-                        if (currentUrl) {
-                            setTimeout(() => {
-                                fetchVideoInfo();
-                            }, 500);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Cookie polling error:', error);
-                }
-
-                // Timeout
-                if (pollCount >= maxPolls) {
-                    clearInterval(cookieSyncPollInterval);
-                    showError('Cookie senkronizasyonu zaman aşımına uğradı. Lütfen manuel olarak deneyin.');
-                }
-            }, 2000);
-        }
-
-        // ============ Cookie Tab Switching ============
-        function switchCookieTab(tab) {
-            // Tab butonlarını güncelle
-            document.querySelectorAll('.cookie-tab').forEach((btn, index) => {
-                btn.classList.remove('active');
-                if ((tab === 'upload' && index === 0) || (tab === 'extension' && index === 1)) {
-                    btn.classList.add('active');
-                }
-            });
-
-            // Tab içeriklerini güncelle
-            document.querySelectorAll('.cookie-tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`cookie-tab-${tab}`).classList.add('active');
-
-            // Extension tab'ına geçildiğinde bağlı extension'ları yükle
-            if (tab === 'extension') {
-                loadConnectedExtensions();
-            }
-        }
-
-        // ============ Extension Pairing ============
-        async function generatePairingCode() {
-            // Eğer extensionId varsa, bildirim gönderen versiyonu kullan
-            if (extensionId) {
-                return generatePairingCodeAndNotify();
-            }
-
-            const btn = document.getElementById('generateCodeBtn');
-            btn.disabled = true;
-            btn.textContent = '⏳ Oluşturuluyor...';
-
-            try {
-                const response = await fetch('/api/extension/generate-token', {
-                    method: 'POST'
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Kod oluşturulamadı');
-                }
-
-                // Kodu göster
-                document.getElementById('pairingCode').textContent = data.pairing_code;
-                document.getElementById('pairingCodeSection').style.display = 'block';
-                btn.textContent = '🔄 Yeni Kod Oluştur';
-
-                // Geri sayımı başlat
-                startPairingTimer(data.expires_in);
-
-                // Cookie sync için polling başlat (manuel kullanım için de)
-                startCookieSyncPolling();
-
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function startPairingTimer(seconds) {
-            // Önceki timer'ı temizle
-            if (pairingTimerInterval) {
-                clearInterval(pairingTimerInterval);
-            }
-
-            let remaining = seconds;
-            const timerEl = document.getElementById('pairingTimer');
-
-            function updateTimer() {
-                const mins = Math.floor(remaining / 60);
-                const secs = remaining % 60;
-                timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} kaldı`;
-
-                // Uyarı renkleri
-                if (remaining <= 60) {
-                    timerEl.className = 'pairing-timer warning';
-                } else {
-                    timerEl.className = 'pairing-timer';
-                }
-
-                if (remaining <= 0) {
-                    timerEl.textContent = 'Süre doldu! Yeni kod oluşturun.';
-                    timerEl.className = 'pairing-timer expired';
-                    clearInterval(pairingTimerInterval);
-                }
-
-                remaining--;
-            }
-
-            updateTimer();
-            pairingTimerInterval = setInterval(updateTimer, 1000);
-        }
-
-        async function loadConnectedExtensions() {
-            try {
-                const response = await fetch('/api/extension/list');
-                const data = await response.json();
-
-                const container = document.getElementById('connectedExtensions');
-                const list = document.getElementById('extensionList');
-
-                if (data.extensions && data.extensions.length > 0) {
-                    container.style.display = 'block';
-                    list.innerHTML = data.extensions.map(ext => `
+          if (data.extensions && data.extensions.length > 0) {
+            container.style.display = "block";
+            list.innerHTML = data.extensions
+              .map(
+                (ext) => `
                         <div class="extension-item">
                             <div class="extension-info">
-                                <span class="extension-browser">${getBrowserIcon(ext.browser)}</span>
+                                <span class="extension-browser">${getBrowserIcon(
+                                  ext.browser
+                                )}</span>
                                 <div class="extension-details">
-                                    <div class="browser-name">${ext.browser}</div>
-                                    <div class="last-sync">${formatLastSync(ext.last_sync)}</div>
+                                    <div class="browser-name">${
+                                      ext.browser
+                                    }</div>
+                                    <div class="last-sync">${formatLastSync(
+                                      ext.last_sync
+                                    )}</div>
                                 </div>
                             </div>
-                            <button class="btn-small" onclick="revokeExtension('${ext.token_prefix}')">
+                            <button class="btn-small" onclick="revokeExtension('${
+                              ext.token_prefix
+                            }')">
                                 Kaldır
                             </button>
                         </div>
-                    `).join('');
-                } else {
-                    container.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Error loading extensions:', error);
-            }
+                    `
+              )
+              .join("");
+          } else {
+            container.style.display = "none";
+          }
+        } catch (error) {
+          console.error("Error loading extensions:", error);
+        }
+      }
+
+      function getBrowserIcon(browser) {
+        const icons = {
+          Chrome: "🌐",
+          Firefox: "🦊",
+          Brave: "🦁",
+          Opera: "🔴",
+          Edge: "📘",
+        };
+        return icons[browser] || "🌐";
+      }
+
+      function formatLastSync(timestamp) {
+        if (!timestamp) return "Henüz senkronize edilmedi";
+
+        const date = new Date(timestamp * 1000);
+        const now = new Date();
+        const diff = now - date;
+
+        if (diff < 60000) return "Az önce";
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} dk önce`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} saat önce`;
+        return date.toLocaleDateString("tr-TR");
+      }
+
+      async function revokeExtension(tokenPrefix) {
+        if (
+          !confirm(
+            "Bu extension bağlantısını kaldırmak istediğinize emin misiniz?"
+          )
+        ) {
+          return;
         }
 
-        function getBrowserIcon(browser) {
-            const icons = {
-                'Chrome': '🌐',
-                'Firefox': '🦊',
-                'Brave': '🦁',
-                'Opera': '🔴',
-                'Edge': '📘'
-            };
-            return icons[browser] || '🌐';
+        try {
+          const response = await fetch("/api/extension/revoke", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token_prefix: tokenPrefix }),
+          });
+
+          if (response.ok) {
+            showSuccess("Extension bağlantısı kaldırıldı");
+            loadConnectedExtensions();
+          } else {
+            const data = await response.json();
+            throw new Error(data.error || "Kaldırma başarısız");
+          }
+        } catch (error) {
+          showError(error.message);
         }
+      }
 
-        function formatLastSync(timestamp) {
-            if (!timestamp) return 'Henüz senkronize edilmedi';
+      // ============ Cookie Status ============
+      async function checkCookieStatus() {
+        try {
+          const response = await fetch("/api/cookie/status");
+          const data = await response.json();
+          updateCookieUI(data.has_cookies);
 
-            const date = new Date(timestamp * 1000);
-            const now = new Date();
-            const diff = now - date;
-
-            if (diff < 60000) return 'Az önce';
-            if (diff < 3600000) return `${Math.floor(diff / 60000)} dk önce`;
-            if (diff < 86400000) return `${Math.floor(diff / 3600000)} saat önce`;
-            return date.toLocaleDateString('tr-TR');
+          // Extension'ları da yükle
+          loadConnectedExtensions();
+        } catch (error) {
+          console.error("Cookie status check failed:", error);
         }
+      }
 
-        async function revokeExtension(tokenPrefix) {
-            if (!confirm('Bu extension bağlantısını kaldırmak istediğinize emin misiniz?')) {
-                return;
-            }
+      function updateCookieUI(hasCookies) {
+        const statusEl = document.getElementById("cookieStatus");
+        const statusText = document.getElementById("cookieStatusText");
+        const deleteBtn = document.getElementById("deleteCookieBtn");
+        const uploadArea = document.getElementById("cookieUploadArea");
 
-            try {
-                const response = await fetch('/api/extension/revoke', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token_prefix: tokenPrefix })
-                });
-
-                if (response.ok) {
-                    showSuccess('Extension bağlantısı kaldırıldı');
-                    loadConnectedExtensions();
-                } else {
-                    const data = await response.json();
-                    throw new Error(data.error || 'Kaldırma başarısız');
-                }
-            } catch (error) {
-                showError(error.message);
-            }
-        }
-
-        // ============ Cookie Status ============
-        async function checkCookieStatus() {
-            try {
-                const response = await fetch('/api/cookie/status');
-                const data = await response.json();
-                updateCookieUI(data.has_cookies);
-
-                // Extension'ları da yükle
-                loadConnectedExtensions();
-            } catch (error) {
-                console.error('Cookie status check failed:', error);
-            }
-        }
-
-        function updateCookieUI(hasCookies) {
-            const statusEl = document.getElementById('cookieStatus');
-            const statusText = document.getElementById('cookieStatusText');
-            const deleteBtn = document.getElementById('deleteCookieBtn');
-            const uploadArea = document.getElementById('cookieUploadArea');
-
-            if (hasCookies) {
-                statusEl.className = 'cookie-status active';
-                statusText.textContent = '✅ Yüklendi';
-                deleteBtn.style.display = 'block';
-                uploadArea.innerHTML = `
+        if (hasCookies) {
+          statusEl.className = "cookie-status active";
+          statusText.textContent = "✅ Yüklendi";
+          deleteBtn.style.display = "block";
+          uploadArea.innerHTML = `
                     <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
                     <p>✅ Cookie dosyası yüklü</p>
                     <p style="font-size: 0.85rem; color: #2ed573; margin-top: 10px;">
                         +18 videolara erişebilirsiniz
                     </p>
                 `;
-            } else {
-                statusEl.className = 'cookie-status inactive';
-                statusText.textContent = 'Yüklenmedi';
-                deleteBtn.style.display = 'none';
-                uploadArea.innerHTML = `
+        } else {
+          statusEl.className = "cookie-status inactive";
+          statusText.textContent = "Yüklenmedi";
+          deleteBtn.style.display = "none";
+          uploadArea.innerHTML = `
                     <input type="file" id="cookieFile" accept=".txt" onchange="uploadCookie(this)">
                     <p>📁 Cookie dosyasını buraya tıklayarak yükleyin</p>
                     <p style="font-size: 0.85rem; color: #666; margin-top: 10px;">
                         +18 videolar için gerekli (Netscape formatında .txt dosyası)
                     </p>
                 `;
+        }
+      }
+
+      async function uploadCookie(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("cookie_file", file);
+
+        try {
+          const response = await fetch("/api/cookie/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showSuccess("Cookie dosyası başarıyla yüklendi!");
+            updateCookieUI(true);
+          } else {
+            showError(data.error || "Cookie yüklenirken hata oluştu");
+          }
+        } catch (error) {
+          showError("Cookie yüklenirken hata oluştu: " + error.message);
+        }
+      }
+
+      async function deleteCookie() {
+        try {
+          await fetch("/api/cookie/delete", { method: "POST" });
+          showSuccess("Cookie silindi");
+          updateCookieUI(false);
+        } catch (error) {
+          showError("Cookie silinirken hata oluştu");
+        }
+      }
+
+      function showError(message) {
+        const errorEl = document.getElementById("error");
+        errorEl.textContent = message;
+        errorEl.style.display = "block";
+        document.getElementById("success").style.display = "none";
+        setTimeout(() => (errorEl.style.display = "none"), 5000);
+      }
+
+      function showSuccess(message) {
+        const successEl = document.getElementById("success");
+        successEl.textContent = message;
+        successEl.style.display = "block";
+        document.getElementById("error").style.display = "none";
+        setTimeout(() => (successEl.style.display = "none"), 5000);
+      }
+
+      function formatDuration(seconds) {
+        if (!seconds) return "";
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+      }
+
+      function formatViews(count) {
+        if (!count) return "";
+        if (count >= 1000000)
+          return (count / 1000000).toFixed(1) + "M görüntülenme";
+        if (count >= 1000) return (count / 1000).toFixed(1) + "K görüntülenme";
+        return count + " görüntülenme";
+      }
+
+      async function fetchVideoInfo() {
+        const url = document.getElementById("urlInput").value.trim();
+        if (!url) {
+          showError("Lütfen bir URL girin");
+          return;
+        }
+
+        currentUrl = url;
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("videoInfo").style.display = "none";
+        document.getElementById("fetchBtn").disabled = true;
+
+        try {
+          const response = await fetch("/api/info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            if (data.requires_cookies) {
+              showError(
+                "Bu video yaş kısıtlamalı. Lütfen yukarıdan cookie dosyanızı yükleyin."
+              );
+            } else {
+              throw new Error(data.error || "Bir hata oluştu");
             }
+            return;
+          }
+
+          displayVideoInfo(data);
+        } catch (error) {
+          showError(error.message);
+        } finally {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("fetchBtn").disabled = false;
         }
+      }
 
-        async function uploadCookie(input) {
-            const file = input.files[0];
-            if (!file) return;
+      function displayVideoInfo(data) {
+        document.getElementById("thumbnail").src = data.thumbnail || "";
+        document.getElementById("videoTitle").textContent = data.title;
+        document.getElementById("uploader").textContent = data.uploader
+          ? `👤 ${data.uploader}`
+          : "";
+        document.getElementById("duration").textContent = data.duration
+          ? `⏱️ ${formatDuration(data.duration)}`
+          : "";
+        document.getElementById("views").textContent = data.view_count
+          ? `👁️ ${formatViews(data.view_count)}`
+          : "";
 
-            const formData = new FormData();
-            formData.append('cookie_file', file);
+        const formatList = document.getElementById("formatList");
+        formatList.innerHTML = "";
 
-            try {
-                const response = await fetch('/api/cookie/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showSuccess('Cookie dosyası başarıyla yüklendi!');
-                    updateCookieUI(true);
-                } else {
-                    showError(data.error || 'Cookie yüklenirken hata oluştu');
-                }
-            } catch (error) {
-                showError('Cookie yüklenirken hata oluştu: ' + error.message);
-            }
-        }
-
-        async function deleteCookie() {
-            try {
-                await fetch('/api/cookie/delete', { method: 'POST' });
-                showSuccess('Cookie silindi');
-                updateCookieUI(false);
-            } catch (error) {
-                showError('Cookie silinirken hata oluştu');
-            }
-        }
-
-        function showError(message) {
-            const errorEl = document.getElementById('error');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.getElementById('success').style.display = 'none';
-            setTimeout(() => errorEl.style.display = 'none', 5000);
-        }
-
-        function showSuccess(message) {
-            const successEl = document.getElementById('success');
-            successEl.textContent = message;
-            successEl.style.display = 'block';
-            document.getElementById('error').style.display = 'none';
-            setTimeout(() => successEl.style.display = 'none', 5000);
-        }
-
-        function formatDuration(seconds) {
-            if (!seconds) return '';
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function formatViews(count) {
-            if (!count) return '';
-            if (count >= 1000000) return (count / 1000000).toFixed(1) + 'M görüntülenme';
-            if (count >= 1000) return (count / 1000).toFixed(1) + 'K görüntülenme';
-            return count + ' görüntülenme';
-        }
-
-        async function fetchVideoInfo() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) {
-                showError('Lütfen bir URL girin');
-                return;
-            }
-
-            currentUrl = url;
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('videoInfo').style.display = 'none';
-            document.getElementById('fetchBtn').disabled = true;
-
-            try {
-                const response = await fetch('/api/info', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    if (data.requires_cookies) {
-                        showError('Bu video yaş kısıtlamalı. Lütfen yukarıdan cookie dosyanızı yükleyin.');
-                    } else {
-                        throw new Error(data.error || 'Bir hata oluştu');
-                    }
-                    return;
-                }
-
-                displayVideoInfo(data);
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('fetchBtn').disabled = false;
-            }
-        }
-
-        function displayVideoInfo(data) {
-            document.getElementById('thumbnail').src = data.thumbnail || '';
-            document.getElementById('videoTitle').textContent = data.title;
-            document.getElementById('uploader').textContent = data.uploader ? `👤 ${data.uploader}` : '';
-            document.getElementById('duration').textContent = data.duration ? `⏱️ ${formatDuration(data.duration)}` : '';
-            document.getElementById('views').textContent = data.view_count ? `👁️ ${formatViews(data.view_count)}` : '';
-
-            const formatList = document.getElementById('formatList');
-            formatList.innerHTML = '';
-
-            data.formats.forEach((format, index) => {
-                const div = document.createElement('div');
-                div.className = 'format-item' + (index === 0 ? ' selected' : '');
-                div.innerHTML = `
+        data.formats.forEach((format, index) => {
+          const div = document.createElement("div");
+          div.className = "format-item" + (index === 0 ? " selected" : "");
+          div.innerHTML = `
                     <div class="quality">${format.quality}</div>
                     <div class="ext">${format.ext.toUpperCase()}</div>
                 `;
-                div.onclick = () => selectFormat(format.format_id, div);
-                formatList.appendChild(div);
-            });
+          div.onclick = () => selectFormat(format.format_id, div);
+          formatList.appendChild(div);
+        });
 
-            if (data.formats.length > 0) {
-                selectedFormat = data.formats[0].format_id;
-            }
-            document.getElementById('videoInfo').style.display = 'block';
+        if (data.formats.length > 0) {
+          selectedFormat = data.formats[0].format_id;
         }
+        document.getElementById("videoInfo").style.display = "block";
+      }
 
-        function selectFormat(formatId, element) {
-            document.querySelectorAll('.format-item').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
-            selectedFormat = formatId;
+      function selectFormat(formatId, element) {
+        document
+          .querySelectorAll(".format-item")
+          .forEach((el) => el.classList.remove("selected"));
+        element.classList.add("selected");
+        selectedFormat = formatId;
+      }
+
+      async function startDownload() {
+        const downloadBtn = document.getElementById("downloadBtn");
+        const progressContainer = document.getElementById("progressContainer");
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = "⏳ Hazırlanıyor...";
+        progressContainer.style.display = "block";
+        progressFill.style.width = "0%";
+        progressText.textContent = "Video hazırlanıyor...";
+
+        try {
+          const response = await fetch("/api/download", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: currentUrl,
+              format_id: selectedFormat,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "İndirme başlatılamadı");
+          }
+
+          checkDownloadStatus(data.download_id);
+        } catch (error) {
+          showError(error.message);
+          downloadBtn.disabled = false;
+          downloadBtn.textContent = "📥 İndir";
+          progressContainer.style.display = "none";
         }
+      }
 
-        async function startDownload() {
-            const downloadBtn = document.getElementById('downloadBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
+      async function checkDownloadStatus(downloadId) {
+        const downloadBtn = document.getElementById("downloadBtn");
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+        const progressContainer = document.getElementById("progressContainer");
 
-            downloadBtn.disabled = true;
-            downloadBtn.textContent = '⏳ Hazırlanıyor...';
-            progressContainer.style.display = 'block';
-            progressFill.style.width = '0%';
-            progressText.textContent = 'Video hazırlanıyor...';
+        try {
+          const response = await fetch(`/api/status/${downloadId}`);
+          const data = await response.json();
 
-            try {
-                const response = await fetch('/api/download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: currentUrl, format_id: selectedFormat })
-                });
+          if (data.status === "downloading") {
+            progressFill.style.width = data.progress + "%";
+            progressText.textContent = `İndiriliyor... %${data.progress}`;
+            setTimeout(() => checkDownloadStatus(downloadId), 1000);
+          } else if (data.status === "completed") {
+            progressFill.style.width = "100%";
+            progressText.textContent =
+              "İndirme tamamlandı! Dosya indiriliyor...";
 
-                const data = await response.json();
+            // Dosyayı indir
+            const iframe = document.createElement("iframe");
+            iframe.style.display = "none";
+            iframe.src = `/api/file/${downloadId}`;
+            document.body.appendChild(iframe);
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'İndirme başlatılamadı');
-                }
-
-                checkDownloadStatus(data.download_id);
-
-            } catch (error) {
-                showError(error.message);
-                downloadBtn.disabled = false;
-                downloadBtn.textContent = '📥 İndir';
-                progressContainer.style.display = 'none';
-            }
+            setTimeout(() => {
+              document.body.removeChild(iframe);
+              downloadBtn.disabled = false;
+              downloadBtn.textContent = "📥 İndir";
+              progressContainer.style.display = "none";
+              showSuccess("Video başarıyla indirildi!");
+            }, 3000);
+          } else if (data.status === "error") {
+            throw new Error(data.error || "İndirme sırasında hata oluştu");
+          }
+        } catch (error) {
+          showError(error.message);
+          downloadBtn.disabled = false;
+          downloadBtn.textContent = "📥 İndir";
+          progressContainer.style.display = "none";
         }
+      }
 
-        async function checkDownloadStatus(downloadId) {
-            const downloadBtn = document.getElementById('downloadBtn');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            const progressContainer = document.getElementById('progressContainer');
+      // Sayfa yüklendiğinde cookie durumunu kontrol et
+      checkCookieStatus();
 
-            try {
-                const response = await fetch(`/api/status/${downloadId}`);
-                const data = await response.json();
+      // URL parametrelerini işle
+      handleUrlParameters();
 
-                if (data.status === 'downloading') {
-                    progressFill.style.width = data.progress + '%';
-                    progressText.textContent = `İndiriliyor... %${data.progress}`;
-                    setTimeout(() => checkDownloadStatus(downloadId), 1000);
-                } else if (data.status === 'completed') {
-                    progressFill.style.width = '100%';
-                    progressText.textContent = 'İndirme tamamlandı! Dosya indiriliyor...';
-                    
-                    // Dosyayı indir
-                    const iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = `/api/file/${downloadId}`;
-                    document.body.appendChild(iframe);
-                    
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                        downloadBtn.disabled = false;
-                        downloadBtn.textContent = '📥 İndir';
-                        progressContainer.style.display = 'none';
-                        showSuccess('Video başarıyla indirildi!');
-                    }, 3000);
-                } else if (data.status === 'error') {
-                    throw new Error(data.error || 'İndirme sırasında hata oluştu');
-                }
-            } catch (error) {
-                showError(error.message);
-                downloadBtn.disabled = false;
-                downloadBtn.textContent = '📥 İndir';
-                progressContainer.style.display = 'none';
-            }
-        }
-
-        // Sayfa yüklendiğinde cookie durumunu kontrol et
-        checkCookieStatus();
-
-        // URL parametrelerini işle
-        handleUrlParameters();
-
-        // Enter tuşu ile arama
-        document.getElementById('urlInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                fetchVideoInfo();
-            }
+      // Enter tuşu ile arama
+      document
+        .getElementById("urlInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            fetchVideoInfo();
+          }
         });
     </script>
-</body>
+  </body>
 </html>

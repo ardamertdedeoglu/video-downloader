@@ -1,181 +1,204 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gizlilik Politikası - Video Downloader Cookie Sync</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            line-height: 1.6;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            color: #e0e0e0;
-            padding: 40px 20px;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 2rem;
-        }
-        
-        .last-updated {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        h2 {
-            color: #667eea;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-        }
-        
-        p, li {
-            margin-bottom: 10px;
-            color: #ccc;
-        }
-        
-        ul {
-            margin-left: 20px;
-            margin-bottom: 15px;
-        }
-        
-        .highlight {
-            background: rgba(102, 126, 234, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 3px solid #667eea;
-            margin: 15px 0;
-        }
-        
-        .contact-section {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
-        }
-        
-        .back-link {
-            display: inline-block;
-            margin-top: 30px;
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border-radius: 8px;
-            font-weight: 500;
-        }
-        
-        .back-link:hover {
-            background: #5a6fd6;
-            text-decoration: none;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, sans-serif;
+        line-height: 1.6;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        min-height: 100vh;
+        color: #e0e0e0;
+        padding: 40px 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 2rem;
+      }
+
+      .last-updated {
+        color: #888;
+        font-size: 0.9rem;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      h2 {
+        color: #667eea;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        font-size: 1.3rem;
+      }
+
+      p,
+      li {
+        margin-bottom: 10px;
+        color: #ccc;
+      }
+
+      ul {
+        margin-left: 20px;
+        margin-bottom: 15px;
+      }
+
+      .highlight {
+        background: rgba(102, 126, 234, 0.1);
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #667eea;
+        margin: 15px 0;
+      }
+
+      .contact-section {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      a {
+        color: #667eea;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 30px;
+        padding: 10px 20px;
+        background: #667eea;
+        color: white;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+
+      .back-link:hover {
+        background: #5a6fd6;
+        text-decoration: none;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>🔒 Gizlilik Politikası</h1>
-        <p class="last-updated">Son güncelleme: Ocak 2025</p>
-        
+      <h1>🔒 Gizlilik Politikası</h1>
+      <p class="last-updated">Son güncelleme: Ocak 2025</p>
+
+      <p>
+        Bu gizlilik politikası, "Video Downloader Cookie Sync" tarayıcı
+        eklentisinin kullanıcı verilerini nasıl topladığını, kullandığını ve
+        koruduğunu açıklar.
+      </p>
+
+      <h2>📋 Toplanan Veriler</h2>
+      <p>Eklentimiz yalnızca aşağıdaki verileri toplar:</p>
+      <ul>
+        <li>
+          <strong>YouTube çerezleri (cookies):</strong> Sadece youtube.com alan
+          adına ait çerezler
+        </li>
+        <li><strong>Tarayıcı türü:</strong> Chrome, Firefox, Edge vb.</li>
+        <li><strong>Bağlantı durumu:</strong> Son senkronizasyon zamanı</li>
+      </ul>
+
+      <div class="highlight">
+        <strong>Önemli:</strong> Şifrelerinizi, kişisel bilgilerinizi veya
+        YouTube dışındaki hiçbir web sitesinin çerezlerini toplamıyoruz.
+      </div>
+
+      <h2>🎯 Verilerin Kullanım Amacı</h2>
+      <p>Toplanan veriler yalnızca şu amaçla kullanılır:</p>
+      <ul>
+        <li>
+          Yaş kısıtlamalı (+18) YouTube videolarının indirilmesini sağlamak
+        </li>
+        <li>
+          YouTube hesabınızla oturum açmış olmanızı Video Downloader
+          uygulamasına aktarmak
+        </li>
+      </ul>
+
+      <h2>🔐 Veri Güvenliği</h2>
+      <ul>
+        <li>Çerezler HTTPS üzerinden şifreli olarak iletilir</li>
+        <li>Her kullanıcı için benzersiz, güvenli token oluşturulur</li>
+        <li>
+          Veriler sunucu belleğinde geçici olarak tutulur ve kalıcı olarak
+          saklanmaz
+        </li>
+        <li>Rate limiting ile kötüye kullanım önlenir</li>
+      </ul>
+
+      <h2>🤝 Üçüncü Taraf Paylaşımı</h2>
+      <p>
+        Toplanan verileri hiçbir üçüncü tarafla paylaşmıyoruz. Veriler yalnızca
+        Video Downloader sunucusuyla iletişim için kullanılır.
+      </p>
+
+      <h2>🗑️ Veri Silme</h2>
+      <p>Verilerinizi silmek için:</p>
+      <ul>
+        <li>Eklenti popup'ından "Bağlantıyı Kes" butonuna tıklayın</li>
+        <li>Video Downloader web sitesinden bağlı extension'ı kaldırın</li>
+        <li>Eklentiyi tarayıcınızdan kaldırın</li>
+      </ul>
+
+      <h2>📝 İzinler</h2>
+      <p>Eklentimizin kullandığı tarayıcı izinleri:</p>
+      <ul>
+        <li><strong>cookies:</strong> YouTube çerezlerine erişim</li>
+        <li>
+          <strong>storage:</strong> Bağlantı bilgilerini yerel olarak saklamak
+        </li>
+        <li><strong>alarms:</strong> Periyodik otomatik senkronizasyon</li>
+      </ul>
+
+      <h2>🔄 Politika Değişiklikleri</h2>
+      <p>
+        Bu gizlilik politikasında yapılan değişiklikler bu sayfada
+        yayınlanacaktır. Önemli değişiklikler için eklenti güncellemesi ile
+        bildirim yapılacaktır.
+      </p>
+
+      <div class="contact-section">
+        <h2>📧 İletişim</h2>
         <p>
-            Bu gizlilik politikası, "Video Downloader Cookie Sync" tarayıcı eklentisinin 
-            kullanıcı verilerini nasıl topladığını, kullandığını ve koruduğunu açıklar.
+          Gizlilik politikamız hakkında sorularınız için bizimle iletişime
+          geçebilirsiniz:
         </p>
-        
-        <h2>📋 Toplanan Veriler</h2>
-        <p>Eklentimiz yalnızca aşağıdaki verileri toplar:</p>
-        <ul>
-            <li><strong>YouTube çerezleri (cookies):</strong> Sadece youtube.com alan adına ait çerezler</li>
-            <li><strong>Tarayıcı türü:</strong> Chrome, Firefox, Edge vb.</li>
-            <li><strong>Bağlantı durumu:</strong> Son senkronizasyon zamanı</li>
-        </ul>
-        
-        <div class="highlight">
-            <strong>Önemli:</strong> Şifrelerinizi, kişisel bilgilerinizi veya YouTube dışındaki 
-            hiçbir web sitesinin çerezlerini toplamıyoruz.
-        </div>
-        
-        <h2>🎯 Verilerin Kullanım Amacı</h2>
-        <p>Toplanan veriler yalnızca şu amaçla kullanılır:</p>
-        <ul>
-            <li>Yaş kısıtlamalı (+18) YouTube videolarının indirilmesini sağlamak</li>
-            <li>YouTube hesabınızla oturum açmış olmanızı Video Downloader uygulamasına aktarmak</li>
-        </ul>
-        
-        <h2>🔐 Veri Güvenliği</h2>
-        <ul>
-            <li>Çerezler HTTPS üzerinden şifreli olarak iletilir</li>
-            <li>Her kullanıcı için benzersiz, güvenli token oluşturulur</li>
-            <li>Veriler sunucu belleğinde geçici olarak tutulur ve kalıcı olarak saklanmaz</li>
-            <li>Rate limiting ile kötüye kullanım önlenir</li>
-        </ul>
-        
-        <h2>🤝 Üçüncü Taraf Paylaşımı</h2>
         <p>
-            Toplanan verileri hiçbir üçüncü tarafla paylaşmıyoruz. Veriler yalnızca 
-            Video Downloader sunucusuyla iletişim için kullanılır.
+          GitHub:
+          <a
+            href="https://github.com/your-username/video-downloader"
+            target="_blank"
+            >github.com/your-username/video-downloader</a
+          >
         </p>
-        
-        <h2>🗑️ Veri Silme</h2>
-        <p>Verilerinizi silmek için:</p>
-        <ul>
-            <li>Eklenti popup'ından "Bağlantıyı Kes" butonuna tıklayın</li>
-            <li>Video Downloader web sitesinden bağlı extension'ı kaldırın</li>
-            <li>Eklentiyi tarayıcınızdan kaldırın</li>
-        </ul>
-        
-        <h2>📝 İzinler</h2>
-        <p>Eklentimizin kullandığı tarayıcı izinleri:</p>
-        <ul>
-            <li><strong>cookies:</strong> YouTube çerezlerine erişim</li>
-            <li><strong>storage:</strong> Bağlantı bilgilerini yerel olarak saklamak</li>
-            <li><strong>alarms:</strong> Periyodik otomatik senkronizasyon</li>
-        </ul>
-        
-        <h2>🔄 Politika Değişiklikleri</h2>
-        <p>
-            Bu gizlilik politikasında yapılan değişiklikler bu sayfada yayınlanacaktır. 
-            Önemli değişiklikler için eklenti güncellemesi ile bildirim yapılacaktır.
-        </p>
-        
-        <div class="contact-section">
-            <h2>📧 İletişim</h2>
-            <p>
-                Gizlilik politikamız hakkında sorularınız için bizimle iletişime geçebilirsiniz:
-            </p>
-            <p>
-                GitHub: <a href="https://github.com/your-username/video-downloader" target="_blank">github.com/your-username/video-downloader</a>
-            </p>
-        </div>
-        
-        <a href="/" class="back-link">← Ana Sayfaya Dön</a>
+      </div>
+
+      <a href="/" class="back-link">← Ana Sayfaya Dön</a>
     </div>
-</body>
+  </body>
 </html>

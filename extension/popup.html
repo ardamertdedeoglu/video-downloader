@@ -1,115 +1,131 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Video Downloader Cookie Sync</title>
-    <link rel="stylesheet" href="popup.css">
-</head>
-<body>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <div class="logo">🎬</div>
-            <h1>Video Downloader</h1>
-            <p class="subtitle">Cookie Sync</p>
+      <div class="header">
+        <div class="logo">🎬</div>
+        <h1>Video Downloader</h1>
+        <p class="subtitle">Cookie Sync</p>
+      </div>
+
+      <!-- Bağlantı Durumu -->
+      <div id="status-section" class="section">
+        <div class="status-indicator" id="status-indicator">
+          <span class="status-dot" id="status-dot"></span>
+          <span class="status-text" id="status-text">Kontrol ediliyor...</span>
+        </div>
+      </div>
+
+      <!-- Hızlı İndirme - YouTube Algılandığında -->
+      <div id="quick-download-section" class="section hidden">
+        <div class="detected-video">
+          <div class="video-icon">🎬</div>
+          <p class="video-url" id="detected-video-url">
+            YouTube videosu algılandı
+          </p>
+        </div>
+        <button id="quick-download-btn" class="btn btn-success btn-large">
+          🚀 Hızlı İndir
+        </button>
+        <p class="help-text" id="quick-download-help">
+          Tıklayın, cookie'ler senkronize edilecek ve indirme sayfası açılacak.
+        </p>
+        <div id="quick-download-loading" class="loading-state hidden">
+          <div class="spinner-small"></div>
+          <span>İşleniyor...</span>
+        </div>
+      </div>
+
+      <!-- Bağlı Değil - Pairing Formu -->
+      <div id="pairing-section" class="section hidden">
+        <div class="form-group">
+          <label for="server-url">Sunucu URL</label>
+          <input
+            type="text"
+            id="server-url"
+            placeholder="https://your-app.railway.app"
+          />
+        </div>
+        <div class="form-group">
+          <label for="pairing-code">Pairing Kodu</label>
+          <input
+            type="text"
+            id="pairing-code"
+            placeholder="ABC123"
+            maxlength="6"
+            style="text-transform: uppercase"
+          />
+        </div>
+        <button id="pair-btn" class="btn btn-primary">🔗 Bağlan</button>
+        <p class="help-text">
+          Pairing kodunu web uygulamasından alabilirsiniz.
+        </p>
+      </div>
+
+      <!-- Bağlı - Kontrol Paneli -->
+      <div id="connected-section" class="section hidden">
+        <div class="info-box">
+          <div class="info-row">
+            <span class="info-label">Sunucu:</span>
+            <span class="info-value" id="connected-server">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Son Sync:</span>
+            <span class="info-value" id="last-sync">-</span>
+          </div>
         </div>
 
-        <!-- Bağlantı Durumu -->
-        <div id="status-section" class="section">
-            <div class="status-indicator" id="status-indicator">
-                <span class="status-dot" id="status-dot"></span>
-                <span class="status-text" id="status-text">Kontrol ediliyor...</span>
-            </div>
+        <!-- Offline Queue Durumu -->
+        <div id="queue-status" class="queue-status hidden">
+          <span class="queue-icon">⏳</span>
+          <span class="queue-text" id="queue-text">0 bekleyen güncelleme</span>
         </div>
 
-        <!-- Hızlı İndirme - YouTube Algılandığında -->
-        <div id="quick-download-section" class="section hidden">
-            <div class="detected-video">
-                <div class="video-icon">🎬</div>
-                <p class="video-url" id="detected-video-url">YouTube videosu algılandı</p>
-            </div>
-            <button id="quick-download-btn" class="btn btn-success btn-large">
-                🚀 Hızlı İndir
-            </button>
-            <p class="help-text" id="quick-download-help">
-                Tıklayın, cookie'ler senkronize edilecek ve indirme sayfası açılacak.
-            </p>
-            <div id="quick-download-loading" class="loading-state hidden">
-                <div class="spinner-small"></div>
-                <span>İşleniyor...</span>
-            </div>
+        <div class="button-group">
+          <button id="sync-btn" class="btn btn-primary">
+            🔄 Şimdi Senkronize Et
+          </button>
+          <button id="disconnect-btn" class="btn btn-danger">
+            🔌 Bağlantıyı Kes
+          </button>
         </div>
+      </div>
 
-        <!-- Bağlı Değil - Pairing Formu -->
-        <div id="pairing-section" class="section hidden">
-            <div class="form-group">
-                <label for="server-url">Sunucu URL</label>
-                <input type="text" id="server-url" placeholder="https://your-app.railway.app">
-            </div>
-            <div class="form-group">
-                <label for="pairing-code">Pairing Kodu</label>
-                <input type="text" id="pairing-code" placeholder="ABC123" maxlength="6" style="text-transform: uppercase;">
-            </div>
-            <button id="pair-btn" class="btn btn-primary">
-                🔗 Bağlan
-            </button>
-            <p class="help-text">
-                Pairing kodunu web uygulamasından alabilirsiniz.
-            </p>
-        </div>
+      <!-- Rate Limit Uyarısı -->
+      <div id="rate-limit-warning" class="warning hidden">
+        <span class="warning-icon">⚠️</span>
+        <span class="warning-text"
+          >Çok sık istek. <span id="retry-countdown">30</span>sn bekleyin.</span
+        >
+      </div>
 
-        <!-- Bağlı - Kontrol Paneli -->
-        <div id="connected-section" class="section hidden">
-            <div class="info-box">
-                <div class="info-row">
-                    <span class="info-label">Sunucu:</span>
-                    <span class="info-value" id="connected-server">-</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Son Sync:</span>
-                    <span class="info-value" id="last-sync">-</span>
-                </div>
-            </div>
+      <!-- Hata Mesajı -->
+      <div id="error-message" class="error hidden">
+        <span class="error-text" id="error-text"></span>
+      </div>
 
-            <!-- Offline Queue Durumu -->
-            <div id="queue-status" class="queue-status hidden">
-                <span class="queue-icon">⏳</span>
-                <span class="queue-text" id="queue-text">0 bekleyen güncelleme</span>
-            </div>
+      <!-- Başarı Mesajı -->
+      <div id="success-message" class="success hidden">
+        <span class="success-text" id="success-text"></span>
+      </div>
 
-            <div class="button-group">
-                <button id="sync-btn" class="btn btn-primary">
-                    🔄 Şimdi Senkronize Et
-                </button>
-                <button id="disconnect-btn" class="btn btn-danger">
-                    🔌 Bağlantıyı Kes
-                </button>
-            </div>
-        </div>
-
-        <!-- Rate Limit Uyarısı -->
-        <div id="rate-limit-warning" class="warning hidden">
-            <span class="warning-icon">⚠️</span>
-            <span class="warning-text">Çok sık istek. <span id="retry-countdown">30</span>sn bekleyin.</span>
-        </div>
-
-        <!-- Hata Mesajı -->
-        <div id="error-message" class="error hidden">
-            <span class="error-text" id="error-text"></span>
-        </div>
-
-        <!-- Başarı Mesajı -->
-        <div id="success-message" class="success hidden">
-            <span class="success-text" id="success-text"></span>
-        </div>
-
-        <div class="footer">
-            <a href="https://github.com/ardamertdedeoglu/video-downloader" target="_blank">GitHub</a>
-            <span class="separator">•</span>
-            <span class="version">v1.0.0</span>
-        </div>
+      <div class="footer">
+        <a
+          href="https://github.com/ardamertdedeoglu/video-downloader"
+          target="_blank"
+          >GitHub</a
+        >
+        <span class="separator">•</span>
+        <span class="version">v1.0.0</span>
+      </div>
     </div>
 
     <script src="popup.js"></script>
-</body>
+  </body>
 </html>

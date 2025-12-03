@@ -1,0 +1,528 @@
+// State
+let currentVideoInfo = null;
+let isDownloading = false;
+
+// DOM Elements
+const elements = {
+    // Modals
+    binaryModal: document.getElementById('binaryModal'),
+    binaryProgress: document.getElementById('binaryProgress'),
+    binaryProgressText: document.getElementById('binaryProgressText'),
+    binaryStatus: document.getElementById('binaryStatus'),
+    
+    // Update banner
+    updateBanner: document.getElementById('updateBanner'),
+    updateBtn: document.getElementById('updateBtn'),
+    dismissUpdate: document.getElementById('dismissUpdate'),
+    
+    // URL section
+    urlInput: document.getElementById('urlInput'),
+    fetchBtn: document.getElementById('fetchBtn'),
+    errorMessage: document.getElementById('errorMessage'),
+    
+    // Video section
+    videoSection: document.getElementById('videoSection'),
+    videoThumbnail: document.getElementById('videoThumbnail'),
+    videoDuration: document.getElementById('videoDuration'),
+    videoTitle: document.getElementById('videoTitle'),
+    videoUploader: document.getElementById('videoUploader'),
+    videoViews: document.getElementById('videoViews'),
+    
+    // Formats
+    videoFormatList: document.getElementById('videoFormatList'),
+    audioFormatList: document.getElementById('audioFormatList'),
+    videoFormats: document.getElementById('videoFormats'),
+    audioFormats: document.getElementById('audioFormats'),
+    downloadMp3Btn: document.getElementById('downloadMp3Btn'),
+    
+    // Progress
+    downloadProgress: document.getElementById('downloadProgress'),
+    downloadProgressBar: document.getElementById('downloadProgressBar'),
+    downloadPercent: document.getElementById('downloadPercent'),
+    downloadStatus: document.getElementById('downloadStatus'),
+    cancelDownload: document.getElementById('cancelDownload'),
+    downloadComplete: document.getElementById('downloadComplete'),
+    openFolderBtn: document.getElementById('openFolderBtn'),
+    
+    // Settings
+    settingsBtn: document.getElementById('settingsBtn'),
+    settingsPanel: document.getElementById('settingsPanel'),
+    closeSettings: document.getElementById('closeSettings'),
+    browserList: document.getElementById('browserList'),
+    browserSettingGroup: document.getElementById('browserSettingGroup'),
+    downloadPath: document.getElementById('downloadPath'),
+    selectPathBtn: document.getElementById('selectPathBtn'),
+    binaryStatusList: document.getElementById('binaryStatusList'),
+    updateBinariesBtn: document.getElementById('updateBinariesBtn'),
+    useCookiesToggle: document.getElementById('useCookiesToggle'),
+    cookieStatusText: document.getElementById('cookieStatusText'),
+    // Cookie sync elements
+    cookieSyncStatus: document.getElementById('cookieSyncStatus'),
+    cookieSyncText: document.getElementById('cookieSyncText'),
+    importCookieBtn: document.getElementById('importCookieBtn'),
+    openWebsiteBtn: document.getElementById('openWebsiteBtn'),
+    deleteCookieBtn: document.getElementById('deleteCookieBtn')
+};
+
+// Initialize
+async function init() {
+    setupEventListeners();
+    setupIpcListeners();
+    await loadSettings();
+    await checkBinaries();
+    await checkCookieStatus();
+}
+
+// Event Listeners
+function setupEventListeners() {
+    // Fetch video
+    elements.fetchBtn.addEventListener('click', fetchVideo);
+    elements.urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') fetchVideo();
+    });
+    
+    // Paste from clipboard on focus
+    elements.urlInput.addEventListener('focus', async () => {
+        if (!elements.urlInput.value) {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (isValidUrl(text)) {
+                    elements.urlInput.value = text;
+                }
+            } catch (e) {
+                // Clipboard access denied
+            }
+        }
+    });
+    
+    // Format tabs
+    document.querySelectorAll('.format-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const tabName = tab.dataset.tab;
+            elements.videoFormats.style.display = tabName === 'video' ? 'block' : 'none';
+            elements.audioFormats.style.display = tabName === 'audio' ? 'block' : 'none';
+        });
+    });
+    
+    // Download MP3
+    elements.downloadMp3Btn.addEventListener('click', () => downloadVideo(null, true));
+    
+    // Cancel download
+    elements.cancelDownload.addEventListener('click', cancelDownload);
+    
+    // Open folder
+    elements.openFolderBtn.addEventListener('click', () => {
+        window.electronAPI.openDownloadFolder();
+    });
+    
+    // Settings
+    elements.settingsBtn.addEventListener('click', () => {
+        elements.settingsPanel.style.display = 'block';
+    });
+    
+    elements.closeSettings.addEventListener('click', () => {
+        elements.settingsPanel.style.display = 'none';
+    });
+    
+    elements.selectPathBtn.addEventListener('click', async () => {
+        const newPath = await window.electronAPI.selectDownloadPath();
+        if (newPath) {
+            elements.downloadPath.value = newPath;
+        }
+    });
+    
+    elements.updateBinariesBtn.addEventListener('click', async () => {
+        elements.binaryModal.classList.add('show');
+        await window.electronAPI.downloadBinaries();
+    });
+    
+    // Cookie toggle
+    elements.useCookiesToggle.addEventListener('change', async (e) => {
+        const useCookies = e.target.checked;
+        await window.electronAPI.setSetting('useCookies', useCookies);
+        elements.cookieStatusText.textContent = useCookies ? 'Çerezler aktif' : 'Çerezler devre dışı';
+        elements.browserSettingGroup.classList.toggle('disabled', !useCookies);
+    });
+    
+    // Cookie sync buttons
+    elements.importCookieBtn.addEventListener('click', async () => {
+        const result = await window.electronAPI.importCookieFile();
+        if (result.success) {
+            showSuccess(`${result.cookieCount} çerez başarıyla yüklendi!`);
+            await checkCookieStatus();
+        } else if (result.error !== 'İptal edildi') {
+            showError(result.error);
+        }
+    });
+    
+    elements.openWebsiteBtn.addEventListener('click', () => {
+        // Open the website in default browser
+        window.open('https://video-downloader-production-9a51.up.railway.app', '_blank');
+    });
+    
+    elements.deleteCookieBtn.addEventListener('click', async () => {
+        await window.electronAPI.deleteCookies();
+        await checkCookieStatus();
+    });
+    
+    // Update
+    elements.updateBtn.addEventListener('click', async () => {
+        elements.updateBtn.textContent = 'İndiriliyor...';
+        elements.updateBtn.disabled = true;
+        await window.electronAPI.downloadUpdate();
+    });
+    
+    elements.dismissUpdate.addEventListener('click', () => {
+        elements.updateBanner.style.display = 'none';
+    });
+}
+
+// IPC Listeners
+function setupIpcListeners() {
+    // Binary events
+    window.electronAPI.onBinariesCheckStart(() => {
+        elements.binaryModal.classList.add('show');
+        elements.binaryStatus.textContent = 'Bileşenler kontrol ediliyor...';
+    });
+    
+    window.electronAPI.onBinariesDownloadStart(() => {
+        elements.binaryModal.classList.add('show');
+        elements.binaryStatus.textContent = 'Gerekli bileşenler indiriliyor...';
+    });
+    
+    window.electronAPI.onBinariesProgress((progress) => {
+        const percent = Math.round(progress.percent);
+        elements.binaryProgress.style.width = `${percent}%`;
+        elements.binaryProgressText.textContent = `${progress.step}: ${progress.status === 'extracting' ? 'Çıkartılıyor...' : `%${percent}`}`;
+    });
+    
+    window.electronAPI.onBinariesReady(() => {
+        elements.binaryModal.classList.remove('show');
+        checkBinaries();
+    });
+    
+    window.electronAPI.onBinariesError((error) => {
+        elements.binaryStatus.textContent = `Hata: ${error}`;
+        elements.binaryProgressText.textContent = 'Lütfen internet bağlantınızı kontrol edin';
+    });
+    
+    // Download progress
+    window.electronAPI.onDownloadProgress((progress) => {
+        elements.downloadProgressBar.style.width = `${progress.percent}%`;
+        elements.downloadPercent.textContent = `%${Math.round(progress.percent)}`;
+        elements.downloadStatus.textContent = progress.status === 'processing' ? 'İşleniyor...' : 'İndiriliyor...';
+    });
+    
+    // Update events
+    window.electronAPI.onUpdateAvailable((info) => {
+        elements.updateBanner.style.display = 'flex';
+        elements.updateBanner.querySelector('span').textContent = `🎉 Yeni sürüm mevcut: v${info.version}`;
+    });
+    
+    window.electronAPI.onUpdateDownloaded(() => {
+        elements.updateBtn.textContent = 'Yeniden Başlat';
+        elements.updateBtn.disabled = false;
+        elements.updateBtn.onclick = () => window.electronAPI.installUpdate();
+    });
+}
+
+// Load settings
+async function loadSettings() {
+    const settings = await window.electronAPI.getSettings();
+    elements.downloadPath.value = settings.downloadPath;
+    
+    // Load cookie settings
+    const useCookies = settings.useCookies !== false; // default true
+    elements.useCookiesToggle.checked = useCookies;
+    elements.cookieStatusText.textContent = useCookies ? 'Çerezler aktif' : 'Çerezler devre dışı';
+    elements.browserSettingGroup.classList.toggle('disabled', !useCookies);
+    
+    // Load browsers
+    const browsers = await window.electronAPI.getBrowsers();
+    elements.browserList.innerHTML = browsers.map(b => `
+        <div class="browser-item ${b.id === settings.browser ? 'active' : ''}" data-browser="${b.id}">
+            <span class="browser-icon">${b.icon}</span>
+            <span class="browser-name">${b.name}</span>
+        </div>
+    `).join('');
+    
+    // Browser selection
+    elements.browserList.querySelectorAll('.browser-item').forEach(item => {
+        item.addEventListener('click', async () => {
+            elements.browserList.querySelectorAll('.browser-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            await window.electronAPI.setSetting('browser', item.dataset.browser);
+        });
+    });
+}
+
+// Check binaries
+async function checkBinaries() {
+    const status = await window.electronAPI.checkBinaries();
+    
+    elements.binaryStatusList.innerHTML = `
+        <div class="binary-item">
+            <span class="binary-name">yt-dlp</span>
+            ${status.ytdlp.exists 
+                ? `<span class="binary-version">✓ ${status.ytdlp.version}</span>`
+                : `<span class="binary-missing">✗ Yüklü değil</span>`
+            }
+        </div>
+        <div class="binary-item">
+            <span class="binary-name">FFmpeg</span>
+            ${status.ffmpeg.exists 
+                ? `<span class="binary-version">✓ ${status.ffmpeg.version}</span>`
+                : `<span class="binary-missing">✗ Yüklü değil</span>`
+            }
+        </div>
+    `;
+}
+
+// Check cookie status
+async function checkCookieStatus() {
+    const status = await window.electronAPI.getCookieStatus();
+    
+    if (status.hasCookies) {
+        elements.cookieSyncStatus.classList.add('synced');
+        elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '✅';
+        elements.cookieSyncText.textContent = `${status.cookieCount} çerez yüklü`;
+        elements.deleteCookieBtn.style.display = 'inline-block';
+    } else {
+        elements.cookieSyncStatus.classList.remove('synced');
+        elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '🔒';
+        elements.cookieSyncText.textContent = 'Çerez yüklenmedi';
+        elements.deleteCookieBtn.style.display = 'none';
+    }
+}
+
+// Show success message
+function showSuccess(message) {
+    // Use error element for now with green styling
+    elements.errorMessage.style.display = 'flex';
+    elements.errorMessage.style.background = 'rgba(74, 222, 128, 0.1)';
+    elements.errorMessage.style.borderColor = '#4ade80';
+    elements.errorMessage.querySelector('.error-icon').textContent = '✅';
+    elements.errorMessage.querySelector('.error-text').textContent = message;
+    elements.errorMessage.querySelector('.error-text').style.color = '#4ade80';
+    
+    setTimeout(() => {
+        hideError();
+        // Reset styles
+        elements.errorMessage.style.background = '';
+        elements.errorMessage.style.borderColor = '';
+        elements.errorMessage.querySelector('.error-icon').textContent = '⚠️';
+        elements.errorMessage.querySelector('.error-text').style.color = '';
+    }, 3000);
+}
+
+// Validate URL
+function isValidUrl(string) {
+    try {
+        const url = new URL(string);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+        return false;
+    }
+}
+
+// Show error
+function showError(message) {
+    elements.errorMessage.style.display = 'flex';
+    elements.errorMessage.querySelector('.error-text').textContent = message;
+}
+
+// Hide error
+function hideError() {
+    elements.errorMessage.style.display = 'none';
+}
+
+// Fetch video info
+async function fetchVideo() {
+    const url = elements.urlInput.value.trim();
+    
+    if (!url) {
+        showError('Lütfen bir video URL\'si girin');
+        return;
+    }
+    
+    if (!isValidUrl(url)) {
+        showError('Geçersiz URL formatı');
+        return;
+    }
+    
+    hideError();
+    elements.videoSection.style.display = 'none';
+    elements.downloadComplete.style.display = 'none';
+    
+    // Show loading state
+    const btnText = elements.fetchBtn.querySelector('.btn-text');
+    const btnLoader = elements.fetchBtn.querySelector('.btn-loader');
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline';
+    elements.fetchBtn.disabled = true;
+    
+    try {
+        const result = await window.electronAPI.getVideoInfo(url);
+        
+        if (!result.success) {
+            showError(result.error);
+            return;
+        }
+        
+        currentVideoInfo = result.data;
+        displayVideoInfo(result.data);
+        
+    } catch (error) {
+        showError(error.message || 'Video bilgisi alınamadı');
+    } finally {
+        btnText.style.display = 'inline';
+        btnLoader.style.display = 'none';
+        elements.fetchBtn.disabled = false;
+    }
+}
+
+// Display video info
+function displayVideoInfo(info) {
+    elements.videoThumbnail.src = info.thumbnail;
+    elements.videoTitle.textContent = info.title;
+    elements.videoUploader.textContent = info.uploader || 'Bilinmeyen';
+    elements.videoViews.textContent = info.viewCount ? formatNumber(info.viewCount) + ' görüntüleme' : '';
+    elements.videoDuration.textContent = formatDuration(info.duration);
+    
+    // Video formats
+    elements.videoFormatList.innerHTML = '';
+    if (info.formats.video && info.formats.video.length > 0) {
+        info.formats.video.forEach(format => {
+            const item = createFormatItem(format, false);
+            elements.videoFormatList.appendChild(item);
+        });
+    } else {
+        elements.videoFormatList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">Video formatı bulunamadı</p>';
+    }
+    
+    // Audio formats
+    elements.audioFormatList.innerHTML = '';
+    if (info.formats.audio && info.formats.audio.length > 0) {
+        info.formats.audio.forEach(format => {
+            const item = createFormatItem(format, true);
+            elements.audioFormatList.appendChild(item);
+        });
+    }
+    
+    elements.videoSection.style.display = 'block';
+}
+
+// Create format item
+function createFormatItem(format, isAudio) {
+    const div = document.createElement('div');
+    div.className = 'format-item';
+    
+    if (isAudio) {
+        div.innerHTML = `
+            <div class="format-info">
+                <span class="format-quality">${format.quality || 'Bilinmeyen'}</span>
+                <span class="format-details">${format.ext.toUpperCase()}</span>
+            </div>
+            <span class="format-size">${format.filesize ? formatFileSize(format.filesize) : '~'}</span>
+        `;
+    } else {
+        div.innerHTML = `
+            <div class="format-info">
+                <span class="format-quality">${format.quality || 'Bilinmeyen'}</span>
+                <span class="format-details">${format.description || format.ext.toUpperCase()} • 🔊 Sesli</span>
+            </div>
+            <span class="format-size">MP4</span>
+        `;
+    }
+    
+    div.addEventListener('click', () => downloadVideo(format.formatId, isAudio));
+    
+    return div;
+}
+
+// Download video
+async function downloadVideo(formatId, audioOnly = false) {
+    if (isDownloading || !currentVideoInfo) return;
+    
+    isDownloading = true;
+    hideError();
+    elements.downloadProgress.style.display = 'block';
+    elements.downloadComplete.style.display = 'none';
+    elements.downloadProgressBar.style.width = '0%';
+    elements.downloadPercent.textContent = '%0';
+    elements.downloadStatus.textContent = 'Başlatılıyor...';
+    
+    try {
+        const result = await window.electronAPI.downloadVideo({
+            url: currentVideoInfo.url,
+            formatId: formatId,
+            audioOnly: audioOnly
+        });
+        
+        if (!result.success) {
+            showError(result.error);
+            elements.downloadProgress.style.display = 'none';
+            return;
+        }
+        
+        // Success
+        elements.downloadProgress.style.display = 'none';
+        elements.downloadComplete.style.display = 'flex';
+        
+    } catch (error) {
+        showError(error.message || 'İndirme başarısız oldu');
+        elements.downloadProgress.style.display = 'none';
+    } finally {
+        isDownloading = false;
+    }
+}
+
+// Cancel download
+async function cancelDownload() {
+    await window.electronAPI.cancelDownload();
+    elements.downloadProgress.style.display = 'none';
+    isDownloading = false;
+}
+
+// Format helpers
+function formatDuration(seconds) {
+    if (!seconds) return '';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    
+    if (h > 0) {
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', init);

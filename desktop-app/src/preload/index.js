@@ -1,0 +1,73 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Expose protected methods to the renderer process
+contextBridge.exposeInMainWorld('electronAPI', {
+    // Video operations
+    getVideoInfo: (url) => ipcRenderer.invoke('get-video-info', url),
+    downloadVideo: (options) => ipcRenderer.invoke('download-video', options),
+    cancelDownload: () => ipcRenderer.invoke('cancel-download'),
+    
+    // Settings
+    getSettings: () => ipcRenderer.invoke('get-settings'),
+    setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),
+    selectDownloadPath: () => ipcRenderer.invoke('select-download-path'),
+    openDownloadFolder: () => ipcRenderer.invoke('open-download-folder'),
+    getBrowsers: () => ipcRenderer.invoke('get-browsers'),
+    
+    // Binaries
+    checkBinaries: () => ipcRenderer.invoke('check-binaries'),
+    downloadBinaries: () => ipcRenderer.invoke('download-binaries'),
+    
+    // Cookie sync
+    generatePairingCode: () => ipcRenderer.invoke('generate-pairing-code'),
+    pairWithWebsite: (code) => ipcRenderer.invoke('pair-with-website', code),
+    getCookieStatus: () => ipcRenderer.invoke('get-cookie-status'),
+    deleteCookies: () => ipcRenderer.invoke('delete-cookies'),
+    importCookieFile: () => ipcRenderer.invoke('import-cookie-file'),
+    
+    // Updates
+    downloadUpdate: () => ipcRenderer.invoke('download-update'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
+    
+    // Event listeners
+    onDownloadProgress: (callback) => {
+        ipcRenderer.on('download-progress', (event, progress) => callback(progress));
+    },
+    
+    onBinariesProgress: (callback) => {
+        ipcRenderer.on('binaries-progress', (event, progress) => callback(progress));
+    },
+    
+    onBinariesReady: (callback) => {
+        ipcRenderer.on('binaries-ready', () => callback());
+    },
+    
+    onBinariesError: (callback) => {
+        ipcRenderer.on('binaries-error', (event, error) => callback(error));
+    },
+    
+    onBinariesCheckStart: (callback) => {
+        ipcRenderer.on('binaries-check-start', () => callback());
+    },
+    
+    onBinariesDownloadStart: (callback) => {
+        ipcRenderer.on('binaries-download-start', () => callback());
+    },
+    
+    onUpdateAvailable: (callback) => {
+        ipcRenderer.on('update-available', (event, info) => callback(info));
+    },
+    
+    onUpdateDownloaded: (callback) => {
+        ipcRenderer.on('update-downloaded', () => callback());
+    },
+    
+    onUpdateProgress: (callback) => {
+        ipcRenderer.on('update-progress', (event, percent) => callback(percent));
+    },
+    
+    // Remove listeners
+    removeAllListeners: (channel) => {
+        ipcRenderer.removeAllListeners(channel);
+    }
+});

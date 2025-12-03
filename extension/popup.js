@@ -2,17 +2,19 @@
 
 // Storage keys
 const STORAGE_KEYS = {
-    SERVER_URL: 'serverUrl',
-    EXTENSION_TOKEN: 'extensionToken',
-    LAST_SYNC: 'lastSync',
-    PENDING_COOKIES: 'pendingCookies'
+  SERVER_URL: "serverUrl",
+  EXTENSION_TOKEN: "extensionToken",
+  LAST_SYNC: "lastSync",
+  PENDING_COOKIES: "pendingCookies",
 };
 
 // Default server URL (production)
-const DEFAULT_SERVER_URL = 'https://video-downloader-production-5a88.up.railway.app';
+const DEFAULT_SERVER_URL =
+  "https://video-downloader-production-5a88.up.railway.app";
 
 // YouTube URL validation regex
-const YOUTUBE_URL_REGEX = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/;
+const YOUTUBE_URL_REGEX =
+  /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/;
 
 // DOM Elements
 let elements = {};
@@ -25,662 +27,685 @@ let lastQuickDownloadTime = 0;
 const THROTTLE_MS = 5000; // 5 saniye throttle
 
 // Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-    initElements();
-    await detectYouTubeVideo();
-    await loadState();
-    setupEventListeners();
-    setupExternalMessageListener();
-    
-    // Bekleyen pairing kodu var mı kontrol et
-    await checkPendingPairingCode();
-    
-    // Periyodik olarak kontrol et (popup açıkken website kod gönderebilir)
-    setInterval(checkPendingPairingCode, 1000);
+document.addEventListener("DOMContentLoaded", async () => {
+  initElements();
+  await detectYouTubeVideo();
+  await loadState();
+  setupEventListeners();
+  setupExternalMessageListener();
+
+  // Bekleyen pairing kodu var mı kontrol et
+  await checkPendingPairingCode();
+
+  // Periyodik olarak kontrol et (popup açıkken website kod gönderebilir)
+  setInterval(checkPendingPairingCode, 1000);
 });
 
 function initElements() {
-    elements = {
-        statusDot: document.getElementById('status-dot'),
-        statusText: document.getElementById('status-text'),
-        pairingSection: document.getElementById('pairing-section'),
-        connectedSection: document.getElementById('connected-section'),
-        quickDownloadSection: document.getElementById('quick-download-section'),
-        detectedVideoUrl: document.getElementById('detected-video-url'),
-        quickDownloadBtn: document.getElementById('quick-download-btn'),
-        quickDownloadHelp: document.getElementById('quick-download-help'),
-        quickDownloadLoading: document.getElementById('quick-download-loading'),
-        serverUrlInput: document.getElementById('server-url'),
-        pairingCodeInput: document.getElementById('pairing-code'),
-        pairBtn: document.getElementById('pair-btn'),
-        syncBtn: document.getElementById('sync-btn'),
-        disconnectBtn: document.getElementById('disconnect-btn'),
-        connectedServer: document.getElementById('connected-server'),
-        lastSync: document.getElementById('last-sync'),
-        queueStatus: document.getElementById('queue-status'),
-        queueText: document.getElementById('queue-text'),
-        rateLimitWarning: document.getElementById('rate-limit-warning'),
-        retryCountdown: document.getElementById('retry-countdown'),
-        errorMessage: document.getElementById('error-message'),
-        errorText: document.getElementById('error-text'),
-        successMessage: document.getElementById('success-message'),
-        successText: document.getElementById('success-text')
-    };
+  elements = {
+    statusDot: document.getElementById("status-dot"),
+    statusText: document.getElementById("status-text"),
+    pairingSection: document.getElementById("pairing-section"),
+    connectedSection: document.getElementById("connected-section"),
+    quickDownloadSection: document.getElementById("quick-download-section"),
+    detectedVideoUrl: document.getElementById("detected-video-url"),
+    quickDownloadBtn: document.getElementById("quick-download-btn"),
+    quickDownloadHelp: document.getElementById("quick-download-help"),
+    quickDownloadLoading: document.getElementById("quick-download-loading"),
+    serverUrlInput: document.getElementById("server-url"),
+    pairingCodeInput: document.getElementById("pairing-code"),
+    pairBtn: document.getElementById("pair-btn"),
+    syncBtn: document.getElementById("sync-btn"),
+    disconnectBtn: document.getElementById("disconnect-btn"),
+    connectedServer: document.getElementById("connected-server"),
+    lastSync: document.getElementById("last-sync"),
+    queueStatus: document.getElementById("queue-status"),
+    queueText: document.getElementById("queue-text"),
+    rateLimitWarning: document.getElementById("rate-limit-warning"),
+    retryCountdown: document.getElementById("retry-countdown"),
+    errorMessage: document.getElementById("error-message"),
+    errorText: document.getElementById("error-text"),
+    successMessage: document.getElementById("success-message"),
+    successText: document.getElementById("success-text"),
+  };
 }
 
 // ============ YouTube URL Detection ============
 
 async function detectYouTubeVideo() {
-    try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const currentTab = tabs[0];
-        
-        if (currentTab && currentTab.url && isValidYouTubeUrl(currentTab.url)) {
-            currentYouTubeUrl = currentTab.url;
-            showQuickDownloadSection(currentTab.url);
-        }
-    } catch (error) {
-        console.error('Error detecting YouTube video:', error);
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+
+    if (currentTab && currentTab.url && isValidYouTubeUrl(currentTab.url)) {
+      currentYouTubeUrl = currentTab.url;
+      showQuickDownloadSection(currentTab.url);
     }
+  } catch (error) {
+    console.error("Error detecting YouTube video:", error);
+  }
 }
 
 function isValidYouTubeUrl(url) {
-    return YOUTUBE_URL_REGEX.test(url);
+  return YOUTUBE_URL_REGEX.test(url);
 }
 
 function showQuickDownloadSection(url) {
-    if (elements.quickDownloadSection) {
-        elements.quickDownloadSection.classList.remove('hidden');
-        
-        // Video ID'yi çıkar ve göster
-        const videoId = extractVideoId(url);
-        if (videoId) {
-            elements.detectedVideoUrl.textContent = `Video: ${videoId}`;
-        } else {
-            elements.detectedVideoUrl.textContent = 'YouTube videosu algılandı';
-        }
+  if (elements.quickDownloadSection) {
+    elements.quickDownloadSection.classList.remove("hidden");
+
+    // Video ID'yi çıkar ve göster
+    const videoId = extractVideoId(url);
+    if (videoId) {
+      elements.detectedVideoUrl.textContent = `Video: ${videoId}`;
+    } else {
+      elements.detectedVideoUrl.textContent = "YouTube videosu algılandı";
     }
+  }
 }
 
 function extractVideoId(url) {
-    try {
-        const urlObj = new URL(url);
-        if (urlObj.hostname.includes('youtu.be')) {
-            return urlObj.pathname.slice(1);
-        }
-        if (urlObj.pathname.includes('/shorts/')) {
-            return urlObj.pathname.split('/shorts/')[1];
-        }
-        return urlObj.searchParams.get('v');
-    } catch {
-        return null;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes("youtu.be")) {
+      return urlObj.pathname.slice(1);
     }
+    if (urlObj.pathname.includes("/shorts/")) {
+      return urlObj.pathname.split("/shorts/")[1];
+    }
+    return urlObj.searchParams.get("v");
+  } catch {
+    return null;
+  }
 }
 
 // ============ Quick Download ============
 
 async function handleQuickDownload() {
-    // Throttle kontrolü
-    const now = Date.now();
-    if (now - lastQuickDownloadTime < THROTTLE_MS) {
-        const remaining = Math.ceil((THROTTLE_MS - (now - lastQuickDownloadTime)) / 1000);
-        showError(`Lütfen ${remaining} saniye bekleyin`);
-        return;
+  // Throttle kontrolü
+  const now = Date.now();
+  if (now - lastQuickDownloadTime < THROTTLE_MS) {
+    const remaining = Math.ceil(
+      (THROTTLE_MS - (now - lastQuickDownloadTime)) / 1000
+    );
+    showError(`Lütfen ${remaining} saniye bekleyin`);
+    return;
+  }
+  lastQuickDownloadTime = now;
+
+  if (!currentYouTubeUrl) {
+    showError("YouTube videosu bulunamadı");
+    return;
+  }
+
+  // UI güncelle
+  elements.quickDownloadBtn.disabled = true;
+  elements.quickDownloadLoading.classList.remove("hidden");
+  elements.quickDownloadHelp.classList.add("hidden");
+  hideMessages();
+
+  try {
+    const data = await chrome.storage.local.get([
+      STORAGE_KEYS.SERVER_URL,
+      STORAGE_KEYS.EXTENSION_TOKEN,
+    ]);
+
+    const serverUrl = (
+      data[STORAGE_KEYS.SERVER_URL] || DEFAULT_SERVER_URL
+    ).replace(/\/$/, "");
+    const extensionId = chrome.runtime.id;
+
+    if (isConnected && data[STORAGE_KEYS.EXTENSION_TOKEN]) {
+      // Zaten bağlı - cookie'leri sync et ve direkt aç
+      try {
+        await syncCookies();
+        // Cookie'ler hazır, direkt video sayfasına yönlendir
+        const targetUrl = `${serverUrl}/?url=${encodeURIComponent(
+          currentYouTubeUrl
+        )}&cookies_ready=true`;
+        chrome.tabs.create({ url: targetUrl });
+        window.close();
+      } catch (syncError) {
+        // Sync başarısız olsa bile sayfayı aç
+        console.error("Sync error during quick download:", syncError);
+        const targetUrl = `${serverUrl}/?url=${encodeURIComponent(
+          currentYouTubeUrl
+        )}&cookies_ready=true`;
+        chrome.tabs.create({ url: targetUrl });
+        window.close();
+      }
+    } else {
+      // Bağlı değil - pairing akışını başlat
+      const targetUrl = `${serverUrl}/?url=${encodeURIComponent(
+        currentYouTubeUrl
+      )}&auto_pair=true&ext_id=${extensionId}`;
+      chrome.tabs.create({ url: targetUrl });
+      // Popup açık kalsın, pairing kodu beklesin
+      showSuccess("Sayfa açıldı, pairing kodunu bekliyor...");
     }
-    lastQuickDownloadTime = now;
-
-    if (!currentYouTubeUrl) {
-        showError('YouTube videosu bulunamadı');
-        return;
-    }
-
-    // UI güncelle
-    elements.quickDownloadBtn.disabled = true;
-    elements.quickDownloadLoading.classList.remove('hidden');
-    elements.quickDownloadHelp.classList.add('hidden');
-    hideMessages();
-
-    try {
-        const data = await chrome.storage.local.get([
-            STORAGE_KEYS.SERVER_URL,
-            STORAGE_KEYS.EXTENSION_TOKEN
-        ]);
-
-        const serverUrl = (data[STORAGE_KEYS.SERVER_URL] || DEFAULT_SERVER_URL).replace(/\/$/, '');
-        const extensionId = chrome.runtime.id;
-
-        if (isConnected && data[STORAGE_KEYS.EXTENSION_TOKEN]) {
-            // Zaten bağlı - cookie'leri sync et ve direkt aç
-            try {
-                await syncCookies();
-                // Cookie'ler hazır, direkt video sayfasına yönlendir
-                const targetUrl = `${serverUrl}/?url=${encodeURIComponent(currentYouTubeUrl)}&cookies_ready=true`;
-                chrome.tabs.create({ url: targetUrl });
-                window.close();
-            } catch (syncError) {
-                // Sync başarısız olsa bile sayfayı aç
-                console.error('Sync error during quick download:', syncError);
-                const targetUrl = `${serverUrl}/?url=${encodeURIComponent(currentYouTubeUrl)}&cookies_ready=true`;
-                chrome.tabs.create({ url: targetUrl });
-                window.close();
-            }
-        } else {
-            // Bağlı değil - pairing akışını başlat
-            const targetUrl = `${serverUrl}/?url=${encodeURIComponent(currentYouTubeUrl)}&auto_pair=true&ext_id=${extensionId}`;
-            chrome.tabs.create({ url: targetUrl });
-            // Popup açık kalsın, pairing kodu beklesin
-            showSuccess('Sayfa açıldı, pairing kodunu bekliyor...');
-        }
-    } catch (error) {
-        console.error('Quick download error:', error);
-        showError('Bir hata oluştu: ' + error.message);
-        // Fallback: manuel akışa yönlendir
-        elements.pairingSection.classList.remove('hidden');
-    } finally {
-        elements.quickDownloadBtn.disabled = false;
-        elements.quickDownloadLoading.classList.add('hidden');
-        elements.quickDownloadHelp.classList.remove('hidden');
-    }
+  } catch (error) {
+    console.error("Quick download error:", error);
+    showError("Bir hata oluştu: " + error.message);
+    // Fallback: manuel akışa yönlendir
+    elements.pairingSection.classList.remove("hidden");
+  } finally {
+    elements.quickDownloadBtn.disabled = false;
+    elements.quickDownloadLoading.classList.add("hidden");
+    elements.quickDownloadHelp.classList.remove("hidden");
+  }
 }
 
 // ============ External Message Listener ============
 
 function setupExternalMessageListener() {
-    // Background'dan gelen mesajları dinle
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.type === 'PAIRING_CODE_FROM_WEBSITE') {
-            handleAutoPairing(message.code, message.serverUrl);
-            sendResponse({ received: true });
-        } else if (message.type === 'PAIRING_COMPLETED') {
-            // Background pairing tamamlandı, state'i güncelle
-            console.log('[Popup] Background pairing completed');
-            showSuccess('Bağlantı kuruldu! Cookie\'ler senkronize edildi.');
-            loadState(); // State'i yeniden yükle
-            sendResponse({ received: true });
-        }
-        return true;
-    });
+  // Background'dan gelen mesajları dinle
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "PAIRING_CODE_FROM_WEBSITE") {
+      handleAutoPairing(message.code, message.serverUrl);
+      sendResponse({ received: true });
+    } else if (message.type === "PAIRING_COMPLETED") {
+      // Background pairing tamamlandı, state'i güncelle
+      console.log("[Popup] Background pairing completed");
+      showSuccess("Bağlantı kuruldu! Cookie'ler senkronize edildi.");
+      loadState(); // State'i yeniden yükle
+      sendResponse({ received: true });
+    }
+    return true;
+  });
 }
 
 // Storage'da bekleyen pairing kodu var mı kontrol et
 async function checkPendingPairingCode() {
-    // Zaten bağlıysa kontrol etme
-    if (isConnected) return;
-    
-    try {
-        // Önce token var mı kontrol et (background pairing yapmış olabilir)
-        const tokenData = await chrome.storage.local.get([STORAGE_KEYS.EXTENSION_TOKEN]);
-        if (tokenData[STORAGE_KEYS.EXTENSION_TOKEN]) {
-            console.log('[Popup] Token found, background already paired');
-            await loadState(); // State'i yeniden yükle
-            return;
-        }
-        
-        const data = await chrome.storage.local.get([
-            'pendingPairingCode',
-            'pendingServerUrl', 
-            'pendingPairingTimestamp'
-        ]);
-        
-        if (data.pendingPairingCode && data.pendingPairingTimestamp) {
-            // 5 dakikadan eski kodları yok say
-            const age = Date.now() - data.pendingPairingTimestamp;
-            if (age < 5 * 60 * 1000) {
-                console.log('[Popup] Found pending pairing code:', data.pendingPairingCode);
-                
-                // Kodu temizle (tekrar işlenmemesi için)
-                await chrome.storage.local.remove([
-                    'pendingPairingCode',
-                    'pendingServerUrl',
-                    'pendingPairingTimestamp'
-                ]);
-                
-                // Otomatik pair et
-                await handleAutoPairing(data.pendingPairingCode, data.pendingServerUrl);
-            } else {
-                // Eski kodu temizle
-                await chrome.storage.local.remove([
-                    'pendingPairingCode',
-                    'pendingServerUrl',
-                    'pendingPairingTimestamp'
-                ]);
-            }
-        }
-    } catch (error) {
-        console.error('[Popup] Error checking pending pairing code:', error);
+  // Zaten bağlıysa kontrol etme
+  if (isConnected) return;
+
+  try {
+    // Önce token var mı kontrol et (background pairing yapmış olabilir)
+    const tokenData = await chrome.storage.local.get([
+      STORAGE_KEYS.EXTENSION_TOKEN,
+    ]);
+    if (tokenData[STORAGE_KEYS.EXTENSION_TOKEN]) {
+      console.log("[Popup] Token found, background already paired");
+      await loadState(); // State'i yeniden yükle
+      return;
     }
+
+    const data = await chrome.storage.local.get([
+      "pendingPairingCode",
+      "pendingServerUrl",
+      "pendingPairingTimestamp",
+    ]);
+
+    if (data.pendingPairingCode && data.pendingPairingTimestamp) {
+      // 5 dakikadan eski kodları yok say
+      const age = Date.now() - data.pendingPairingTimestamp;
+      if (age < 5 * 60 * 1000) {
+        console.log(
+          "[Popup] Found pending pairing code:",
+          data.pendingPairingCode
+        );
+
+        // Kodu temizle (tekrar işlenmemesi için)
+        await chrome.storage.local.remove([
+          "pendingPairingCode",
+          "pendingServerUrl",
+          "pendingPairingTimestamp",
+        ]);
+
+        // Otomatik pair et
+        await handleAutoPairing(data.pendingPairingCode, data.pendingServerUrl);
+      } else {
+        // Eski kodu temizle
+        await chrome.storage.local.remove([
+          "pendingPairingCode",
+          "pendingServerUrl",
+          "pendingPairingTimestamp",
+        ]);
+      }
+    }
+  } catch (error) {
+    console.error("[Popup] Error checking pending pairing code:", error);
+  }
 }
 
 async function handleAutoPairing(code, serverUrl) {
-    if (!code || code.length !== 6) {
-        console.error('Invalid pairing code received');
-        return;
-    }
+  if (!code || code.length !== 6) {
+    console.error("Invalid pairing code received");
+    return;
+  }
 
-    // Pairing kodunu input'a yaz ve otomatik pair et
-    if (elements.pairingCodeInput) {
-        elements.pairingCodeInput.value = code.toUpperCase();
-    }
-    if (elements.serverUrlInput && serverUrl) {
-        elements.serverUrlInput.value = serverUrl;
-    }
+  // Pairing kodunu input'a yaz ve otomatik pair et
+  if (elements.pairingCodeInput) {
+    elements.pairingCodeInput.value = code.toUpperCase();
+  }
+  if (elements.serverUrlInput && serverUrl) {
+    elements.serverUrlInput.value = serverUrl;
+  }
 
-    // Otomatik pair
-    showSuccess('Pairing kodu alındı, bağlanılıyor...');
-    await handlePair();
+  // Otomatik pair
+  showSuccess("Pairing kodu alındı, bağlanılıyor...");
+  await handlePair();
 }
 
 async function loadState() {
-    try {
-        const data = await chrome.storage.local.get([
-            STORAGE_KEYS.SERVER_URL,
-            STORAGE_KEYS.EXTENSION_TOKEN,
-            STORAGE_KEYS.LAST_SYNC,
-            STORAGE_KEYS.PENDING_COOKIES
-        ]);
+  try {
+    const data = await chrome.storage.local.get([
+      STORAGE_KEYS.SERVER_URL,
+      STORAGE_KEYS.EXTENSION_TOKEN,
+      STORAGE_KEYS.LAST_SYNC,
+      STORAGE_KEYS.PENDING_COOKIES,
+    ]);
 
-        const serverUrl = data[STORAGE_KEYS.SERVER_URL] || DEFAULT_SERVER_URL;
-        elements.serverUrlInput.value = serverUrl;
+    const serverUrl = data[STORAGE_KEYS.SERVER_URL] || DEFAULT_SERVER_URL;
+    elements.serverUrlInput.value = serverUrl;
 
-        if (data[STORAGE_KEYS.EXTENSION_TOKEN]) {
-            // Token var, bağlantıyı doğrula
-            const isValid = await verifyConnection(serverUrl, data[STORAGE_KEYS.EXTENSION_TOKEN]);
-            if (isValid) {
-                showConnectedState(serverUrl, data[STORAGE_KEYS.LAST_SYNC]);
-            } else {
-                // Token geçersiz, temizle
-                await chrome.storage.local.remove([STORAGE_KEYS.EXTENSION_TOKEN]);
-                showDisconnectedState();
-            }
-        } else {
-            showDisconnectedState();
-        }
-
-        // Bekleyen cookie'leri kontrol et
-        await updateQueueStatus();
-    } catch (error) {
-        console.error('Error loading state:', error);
+    if (data[STORAGE_KEYS.EXTENSION_TOKEN]) {
+      // Token var, bağlantıyı doğrula
+      const isValid = await verifyConnection(
+        serverUrl,
+        data[STORAGE_KEYS.EXTENSION_TOKEN]
+      );
+      if (isValid) {
+        showConnectedState(serverUrl, data[STORAGE_KEYS.LAST_SYNC]);
+      } else {
+        // Token geçersiz, temizle
+        await chrome.storage.local.remove([STORAGE_KEYS.EXTENSION_TOKEN]);
         showDisconnectedState();
+      }
+    } else {
+      showDisconnectedState();
     }
+
+    // Bekleyen cookie'leri kontrol et
+    await updateQueueStatus();
+  } catch (error) {
+    console.error("Error loading state:", error);
+    showDisconnectedState();
+  }
 }
 
 function setupEventListeners() {
-    elements.pairBtn.addEventListener('click', handlePair);
-    elements.syncBtn.addEventListener('click', handleSync);
-    elements.disconnectBtn.addEventListener('click', handleDisconnect);
-    
-    // Quick download butonu
-    if (elements.quickDownloadBtn) {
-        elements.quickDownloadBtn.addEventListener('click', handleQuickDownload);
+  elements.pairBtn.addEventListener("click", handlePair);
+  elements.syncBtn.addEventListener("click", handleSync);
+  elements.disconnectBtn.addEventListener("click", handleDisconnect);
+
+  // Quick download butonu
+  if (elements.quickDownloadBtn) {
+    elements.quickDownloadBtn.addEventListener("click", handleQuickDownload);
+  }
+
+  // Pairing kodu auto-uppercase
+  elements.pairingCodeInput.addEventListener("input", (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+
+  // Enter ile pairing
+  elements.pairingCodeInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      handlePair();
     }
-
-    // Pairing kodu auto-uppercase
-    elements.pairingCodeInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.toUpperCase();
-    });
-
-    // Enter ile pairing
-    elements.pairingCodeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handlePair();
-        }
-    });
+  });
 }
 
 async function verifyConnection(serverUrl, token) {
-    try {
-        const response = await fetch(`${serverUrl}/api/extension/verify`, {
-            method: 'GET',
-            headers: {
-                'X-Extension-Token': token
-            }
-        });
+  try {
+    const response = await fetch(`${serverUrl}/api/extension/verify`, {
+      method: "GET",
+      headers: {
+        "X-Extension-Token": token,
+      },
+    });
 
-        if (!response.ok) return false;
+    if (!response.ok) return false;
 
-        const data = await response.json();
-        return data.valid === true;
-    } catch (error) {
-        console.error('Verify connection error:', error);
-        return false;
-    }
+    const data = await response.json();
+    return data.valid === true;
+  } catch (error) {
+    console.error("Verify connection error:", error);
+    return false;
+  }
 }
 
 async function handlePair() {
-    const serverUrl = elements.serverUrlInput.value.trim().replace(/\/$/, '');
-    const pairingCode = elements.pairingCodeInput.value.trim().toUpperCase();
+  const serverUrl = elements.serverUrlInput.value.trim().replace(/\/$/, "");
+  const pairingCode = elements.pairingCodeInput.value.trim().toUpperCase();
 
-    if (!serverUrl) {
-        showError('Sunucu URL\'si gerekli');
-        return;
+  if (!serverUrl) {
+    showError("Sunucu URL'si gerekli");
+    return;
+  }
+
+  if (!pairingCode || pairingCode.length !== 6) {
+    showError("6 haneli pairing kodu gerekli");
+    return;
+  }
+
+  elements.pairBtn.disabled = true;
+  elements.pairBtn.textContent = "⏳ Bağlanıyor...";
+  hideMessages();
+
+  try {
+    // Tarayıcı bilgisini al
+    const browserInfo = getBrowserInfo();
+
+    const response = await fetch(`${serverUrl}/api/extension/pair`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pairing_code: pairingCode,
+        browser: browserInfo,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Bağlantı başarısız");
     }
 
-    if (!pairingCode || pairingCode.length !== 6) {
-        showError('6 haneli pairing kodu gerekli');
-        return;
-    }
+    // Token'ı kaydet
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.SERVER_URL]: serverUrl,
+      [STORAGE_KEYS.EXTENSION_TOKEN]: data.extension_token,
+    });
 
-    elements.pairBtn.disabled = true;
-    elements.pairBtn.textContent = '⏳ Bağlanıyor...';
-    hideMessages();
+    // Hemen cookie'leri senkronize et
+    await syncCookies();
 
-    try {
-        // Tarayıcı bilgisini al
-        const browserInfo = getBrowserInfo();
-
-        const response = await fetch(`${serverUrl}/api/extension/pair`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                pairing_code: pairingCode,
-                browser: browserInfo
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Bağlantı başarısız');
-        }
-
-        // Token'ı kaydet
-        await chrome.storage.local.set({
-            [STORAGE_KEYS.SERVER_URL]: serverUrl,
-            [STORAGE_KEYS.EXTENSION_TOKEN]: data.extension_token
-        });
-
-        // Hemen cookie'leri senkronize et
-        await syncCookies();
-
-        showSuccess('Başarıyla bağlandı!');
-        showConnectedState(serverUrl, null);
-
-    } catch (error) {
-        showError(error.message);
-    } finally {
-        elements.pairBtn.disabled = false;
-        elements.pairBtn.innerHTML = '🔗 Bağlan';
-    }
+    showSuccess("Başarıyla bağlandı!");
+    showConnectedState(serverUrl, null);
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    elements.pairBtn.disabled = false;
+    elements.pairBtn.innerHTML = "🔗 Bağlan";
+  }
 }
 
 async function handleSync() {
-    if (isSyncing) return;
+  if (isSyncing) return;
 
-    elements.syncBtn.disabled = true;
-    elements.syncBtn.innerHTML = '⏳ Senkronize ediliyor...';
-    hideMessages();
+  elements.syncBtn.disabled = true;
+  elements.syncBtn.innerHTML = "⏳ Senkronize ediliyor...";
+  hideMessages();
 
-    try {
-        await syncCookies();
-        showSuccess('Cookie\'ler senkronize edildi!');
-    } catch (error) {
-        if (error.message.includes('Rate limit')) {
-            showRateLimitWarning(error.retryAfter || 30);
-        } else {
-            showError(error.message);
-        }
-    } finally {
-        elements.syncBtn.disabled = false;
-        elements.syncBtn.innerHTML = '🔄 Şimdi Senkronize Et';
+  try {
+    await syncCookies();
+    showSuccess("Cookie'ler senkronize edildi!");
+  } catch (error) {
+    if (error.message.includes("Rate limit")) {
+      showRateLimitWarning(error.retryAfter || 30);
+    } else {
+      showError(error.message);
     }
+  } finally {
+    elements.syncBtn.disabled = false;
+    elements.syncBtn.innerHTML = "🔄 Şimdi Senkronize Et";
+  }
 }
 
 async function handleDisconnect() {
-    if (!confirm('Extension bağlantısını kesmek istediğinize emin misiniz?')) {
-        return;
-    }
+  if (!confirm("Extension bağlantısını kesmek istediğinize emin misiniz?")) {
+    return;
+  }
 
-    await chrome.storage.local.remove([
-        STORAGE_KEYS.EXTENSION_TOKEN,
-        STORAGE_KEYS.LAST_SYNC
-    ]);
+  await chrome.storage.local.remove([
+    STORAGE_KEYS.EXTENSION_TOKEN,
+    STORAGE_KEYS.LAST_SYNC,
+  ]);
 
-    showDisconnectedState();
-    showSuccess('Bağlantı kesildi');
+  showDisconnectedState();
+  showSuccess("Bağlantı kesildi");
 }
 
 async function syncCookies() {
-    isSyncing = true;
-    updateSyncStatus('syncing');
+  isSyncing = true;
+  updateSyncStatus("syncing");
 
-    try {
-        const data = await chrome.storage.local.get([
-            STORAGE_KEYS.SERVER_URL,
-            STORAGE_KEYS.EXTENSION_TOKEN
-        ]);
+  try {
+    const data = await chrome.storage.local.get([
+      STORAGE_KEYS.SERVER_URL,
+      STORAGE_KEYS.EXTENSION_TOKEN,
+    ]);
 
-        if (!data[STORAGE_KEYS.EXTENSION_TOKEN]) {
-            throw new Error('Bağlantı bulunamadı');
-        }
-
-        // YouTube cookie'lerini al
-        const cookies = await chrome.cookies.getAll({ domain: '.youtube.com' });
-        const youtubeCookies = await chrome.cookies.getAll({ domain: 'youtube.com' });
-        const allCookies = [...cookies, ...youtubeCookies];
-
-        if (allCookies.length === 0) {
-            throw new Error('YouTube cookie\'si bulunamadı. YouTube\'a giriş yapın.');
-        }
-
-        // Sunucuya gönder
-        const response = await fetch(`${data[STORAGE_KEYS.SERVER_URL]}/api/extension/push-cookies`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Extension-Token': data[STORAGE_KEYS.EXTENSION_TOKEN]
-            },
-            body: JSON.stringify({ cookies: allCookies })
-        });
-
-        if (response.status === 429) {
-            const errorData = await response.json();
-            const error = new Error('Rate limit aşıldı');
-            error.retryAfter = errorData.retry_after || 30;
-            throw error;
-        }
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Senkronizasyon başarısız');
-        }
-
-        // Son sync zamanını güncelle
-        const now = Date.now();
-        await chrome.storage.local.set({ [STORAGE_KEYS.LAST_SYNC]: now });
-        
-        // Pending queue'yu temizle
-        await chrome.storage.local.remove(STORAGE_KEYS.PENDING_COOKIES);
-
-        updateLastSyncTime(now);
-        updateSyncStatus('connected');
-        await updateQueueStatus();
-
-        // Background script'e bildir
-        chrome.runtime.sendMessage({ type: 'SYNC_COMPLETED' });
-
-    } catch (error) {
-        updateSyncStatus('connected');
-        
-        // Offline ise queue'ya ekle
-        if (!navigator.onLine || error.message.includes('Failed to fetch')) {
-            await addToQueue();
-        }
-        
-        throw error;
-    } finally {
-        isSyncing = false;
+    if (!data[STORAGE_KEYS.EXTENSION_TOKEN]) {
+      throw new Error("Bağlantı bulunamadı");
     }
+
+    // YouTube cookie'lerini al
+    const cookies = await chrome.cookies.getAll({ domain: ".youtube.com" });
+    const youtubeCookies = await chrome.cookies.getAll({
+      domain: "youtube.com",
+    });
+    const allCookies = [...cookies, ...youtubeCookies];
+
+    if (allCookies.length === 0) {
+      throw new Error("YouTube cookie'si bulunamadı. YouTube'a giriş yapın.");
+    }
+
+    // Sunucuya gönder
+    const response = await fetch(
+      `${data[STORAGE_KEYS.SERVER_URL]}/api/extension/push-cookies`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Extension-Token": data[STORAGE_KEYS.EXTENSION_TOKEN],
+        },
+        body: JSON.stringify({ cookies: allCookies }),
+      }
+    );
+
+    if (response.status === 429) {
+      const errorData = await response.json();
+      const error = new Error("Rate limit aşıldı");
+      error.retryAfter = errorData.retry_after || 30;
+      throw error;
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Senkronizasyon başarısız");
+    }
+
+    // Son sync zamanını güncelle
+    const now = Date.now();
+    await chrome.storage.local.set({ [STORAGE_KEYS.LAST_SYNC]: now });
+
+    // Pending queue'yu temizle
+    await chrome.storage.local.remove(STORAGE_KEYS.PENDING_COOKIES);
+
+    updateLastSyncTime(now);
+    updateSyncStatus("connected");
+    await updateQueueStatus();
+
+    // Background script'e bildir
+    chrome.runtime.sendMessage({ type: "SYNC_COMPLETED" });
+  } catch (error) {
+    updateSyncStatus("connected");
+
+    // Offline ise queue'ya ekle
+    if (!navigator.onLine || error.message.includes("Failed to fetch")) {
+      await addToQueue();
+    }
+
+    throw error;
+  } finally {
+    isSyncing = false;
+  }
 }
 
 async function addToQueue() {
-    try {
-        const data = await chrome.storage.local.get(STORAGE_KEYS.PENDING_COOKIES);
-        let queue = data[STORAGE_KEYS.PENDING_COOKIES] || [];
+  try {
+    const data = await chrome.storage.local.get(STORAGE_KEYS.PENDING_COOKIES);
+    let queue = data[STORAGE_KEYS.PENDING_COOKIES] || [];
 
-        // YouTube cookie'lerini al
-        const cookies = await chrome.cookies.getAll({ domain: '.youtube.com' });
-        const youtubeCookies = await chrome.cookies.getAll({ domain: 'youtube.com' });
-        const allCookies = [...cookies, ...youtubeCookies];
+    // YouTube cookie'lerini al
+    const cookies = await chrome.cookies.getAll({ domain: ".youtube.com" });
+    const youtubeCookies = await chrome.cookies.getAll({
+      domain: "youtube.com",
+    });
+    const allCookies = [...cookies, ...youtubeCookies];
 
-        // Queue'ya ekle (max 10)
-        queue.push({
-            cookies: allCookies,
-            timestamp: Date.now()
-        });
+    // Queue'ya ekle (max 10)
+    queue.push({
+      cookies: allCookies,
+      timestamp: Date.now(),
+    });
 
-        if (queue.length > 10) {
-            queue = queue.slice(-10);
-        }
-
-        await chrome.storage.local.set({ [STORAGE_KEYS.PENDING_COOKIES]: queue });
-        await updateQueueStatus();
-    } catch (error) {
-        console.error('Error adding to queue:', error);
+    if (queue.length > 10) {
+      queue = queue.slice(-10);
     }
+
+    await chrome.storage.local.set({ [STORAGE_KEYS.PENDING_COOKIES]: queue });
+    await updateQueueStatus();
+  } catch (error) {
+    console.error("Error adding to queue:", error);
+  }
 }
 
 async function updateQueueStatus() {
-    try {
-        const data = await chrome.storage.local.get(STORAGE_KEYS.PENDING_COOKIES);
-        const queue = data[STORAGE_KEYS.PENDING_COOKIES] || [];
+  try {
+    const data = await chrome.storage.local.get(STORAGE_KEYS.PENDING_COOKIES);
+    const queue = data[STORAGE_KEYS.PENDING_COOKIES] || [];
 
-        if (queue.length > 0) {
-            elements.queueStatus.classList.remove('hidden');
-            elements.queueText.textContent = `${queue.length} bekleyen güncelleme`;
-        } else {
-            elements.queueStatus.classList.add('hidden');
-        }
-    } catch (error) {
-        console.error('Error updating queue status:', error);
+    if (queue.length > 0) {
+      elements.queueStatus.classList.remove("hidden");
+      elements.queueText.textContent = `${queue.length} bekleyen güncelleme`;
+    } else {
+      elements.queueStatus.classList.add("hidden");
     }
+  } catch (error) {
+    console.error("Error updating queue status:", error);
+  }
 }
 
 function showConnectedState(serverUrl, lastSync) {
-    isConnected = true;
-    elements.pairingSection.classList.add('hidden');
-    elements.connectedSection.classList.remove('hidden');
-    
-    // Sunucu URL'sini kısalt
-    try {
-        const url = new URL(serverUrl);
-        elements.connectedServer.textContent = url.hostname;
-    } catch {
-        elements.connectedServer.textContent = serverUrl;
-    }
+  isConnected = true;
+  elements.pairingSection.classList.add("hidden");
+  elements.connectedSection.classList.remove("hidden");
 
-    updateLastSyncTime(lastSync);
-    updateSyncStatus('connected');
+  // Sunucu URL'sini kısalt
+  try {
+    const url = new URL(serverUrl);
+    elements.connectedServer.textContent = url.hostname;
+  } catch {
+    elements.connectedServer.textContent = serverUrl;
+  }
+
+  updateLastSyncTime(lastSync);
+  updateSyncStatus("connected");
 }
 
 function showDisconnectedState() {
-    isConnected = false;
-    elements.pairingSection.classList.remove('hidden');
-    elements.connectedSection.classList.add('hidden');
-    elements.pairingCodeInput.value = '';
-    updateSyncStatus('disconnected');
+  isConnected = false;
+  elements.pairingSection.classList.remove("hidden");
+  elements.connectedSection.classList.add("hidden");
+  elements.pairingCodeInput.value = "";
+  updateSyncStatus("disconnected");
 }
 
 function updateSyncStatus(status) {
-    elements.statusDot.className = 'status-dot ' + status;
-    
-    switch (status) {
-        case 'connected':
-            elements.statusText.textContent = 'Bağlı';
-            break;
-        case 'disconnected':
-            elements.statusText.textContent = 'Bağlı Değil';
-            break;
-        case 'syncing':
-            elements.statusText.textContent = 'Senkronize ediliyor...';
-            break;
-        default:
-            elements.statusText.textContent = status;
-    }
+  elements.statusDot.className = "status-dot " + status;
+
+  switch (status) {
+    case "connected":
+      elements.statusText.textContent = "Bağlı";
+      break;
+    case "disconnected":
+      elements.statusText.textContent = "Bağlı Değil";
+      break;
+    case "syncing":
+      elements.statusText.textContent = "Senkronize ediliyor...";
+      break;
+    default:
+      elements.statusText.textContent = status;
+  }
 }
 
 function updateLastSyncTime(timestamp) {
-    if (!timestamp) {
-        elements.lastSync.textContent = 'Henüz yok';
-        return;
-    }
+  if (!timestamp) {
+    elements.lastSync.textContent = "Henüz yok";
+    return;
+  }
 
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
 
-    if (diff < 60000) {
-        elements.lastSync.textContent = 'Az önce';
-    } else if (diff < 3600000) {
-        const mins = Math.floor(diff / 60000);
-        elements.lastSync.textContent = `${mins} dakika önce`;
-    } else if (diff < 86400000) {
-        const hours = Math.floor(diff / 3600000);
-        elements.lastSync.textContent = `${hours} saat önce`;
-    } else {
-        elements.lastSync.textContent = date.toLocaleDateString('tr-TR', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
+  if (diff < 60000) {
+    elements.lastSync.textContent = "Az önce";
+  } else if (diff < 3600000) {
+    const mins = Math.floor(diff / 60000);
+    elements.lastSync.textContent = `${mins} dakika önce`;
+  } else if (diff < 86400000) {
+    const hours = Math.floor(diff / 3600000);
+    elements.lastSync.textContent = `${hours} saat önce`;
+  } else {
+    elements.lastSync.textContent = date.toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 }
 
 function showError(message) {
-    elements.errorMessage.classList.remove('hidden');
-    elements.errorText.textContent = message;
-    elements.successMessage.classList.add('hidden');
-    elements.rateLimitWarning.classList.add('hidden');
+  elements.errorMessage.classList.remove("hidden");
+  elements.errorText.textContent = message;
+  elements.successMessage.classList.add("hidden");
+  elements.rateLimitWarning.classList.add("hidden");
 
-    setTimeout(() => {
-        elements.errorMessage.classList.add('hidden');
-    }, 5000);
+  setTimeout(() => {
+    elements.errorMessage.classList.add("hidden");
+  }, 5000);
 }
 
 function showSuccess(message) {
-    elements.successMessage.classList.remove('hidden');
-    elements.successText.textContent = message;
-    elements.errorMessage.classList.add('hidden');
-    elements.rateLimitWarning.classList.add('hidden');
+  elements.successMessage.classList.remove("hidden");
+  elements.successText.textContent = message;
+  elements.errorMessage.classList.add("hidden");
+  elements.rateLimitWarning.classList.add("hidden");
 
-    setTimeout(() => {
-        elements.successMessage.classList.add('hidden');
-    }, 3000);
+  setTimeout(() => {
+    elements.successMessage.classList.add("hidden");
+  }, 3000);
 }
 
 function showRateLimitWarning(seconds) {
-    elements.rateLimitWarning.classList.remove('hidden');
-    elements.errorMessage.classList.add('hidden');
-    elements.successMessage.classList.add('hidden');
+  elements.rateLimitWarning.classList.remove("hidden");
+  elements.errorMessage.classList.add("hidden");
+  elements.successMessage.classList.add("hidden");
 
-    let remaining = seconds;
+  let remaining = seconds;
+  elements.retryCountdown.textContent = remaining;
+
+  const interval = setInterval(() => {
+    remaining--;
     elements.retryCountdown.textContent = remaining;
 
-    const interval = setInterval(() => {
-        remaining--;
-        elements.retryCountdown.textContent = remaining;
-
-        if (remaining <= 0) {
-            clearInterval(interval);
-            elements.rateLimitWarning.classList.add('hidden');
-        }
-    }, 1000);
+    if (remaining <= 0) {
+      clearInterval(interval);
+      elements.rateLimitWarning.classList.add("hidden");
+    }
+  }, 1000);
 }
 
 function hideMessages() {
-    elements.errorMessage.classList.add('hidden');
-    elements.successMessage.classList.add('hidden');
-    elements.rateLimitWarning.classList.add('hidden');
+  elements.errorMessage.classList.add("hidden");
+  elements.successMessage.classList.add("hidden");
+  elements.rateLimitWarning.classList.add("hidden");
 }
 
 function getBrowserInfo() {
-    const ua = navigator.userAgent;
-    if (ua.includes('Firefox')) return 'Firefox';
-    if (ua.includes('Edg')) return 'Edge';
-    if (ua.includes('OPR') || ua.includes('Opera')) return 'Opera';
-    if (ua.includes('Brave')) return 'Brave';
-    if (ua.includes('Chrome')) return 'Chrome';
-    return 'Unknown';
+  const ua = navigator.userAgent;
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Edg")) return "Edge";
+  if (ua.includes("OPR") || ua.includes("Opera")) return "Opera";
+  if (ua.includes("Brave")) return "Brave";
+  if (ua.includes("Chrome")) return "Chrome";
+  return "Unknown";
 }

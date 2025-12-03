@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:;">
+    <title>Video Downloader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Titlebar for macOS -->
+        <div class="titlebar" id="titlebar">
+            <div class="titlebar-drag-region"></div>
+            <span class="app-title">Video Downloader</span>
+        </div>
+
+        <!-- Binary Download Modal -->
+        <div class="modal" id="binaryModal">
+            <div class="modal-content">
+                <div class="modal-icon">⬇️</div>
+                <h2>İlk Kurulum</h2>
+                <p id="binaryStatus">Gerekli bileşenler indiriliyor...</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="binaryProgress"></div>
+                </div>
+                <p class="progress-text" id="binaryProgressText">Hazırlanıyor...</p>
+            </div>
+        </div>
+
+        <!-- Update Available Banner -->
+        <div class="update-banner" id="updateBanner" style="display: none;">
+            <span>🎉 Yeni sürüm mevcut!</span>
+            <button id="updateBtn" class="btn-small">Güncelle</button>
+            <button id="dismissUpdate" class="btn-small btn-ghost">×</button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo">
+                    <span class="logo-icon">📥</span>
+                    <h1>Video Downloader</h1>
+                </div>
+                <button class="settings-btn" id="settingsBtn" title="Ayarlar">
+                    ⚙️
+                </button>
+            </header>
+
+            <!-- URL Input Section -->
+            <section class="url-section">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="urlInput" 
+                        placeholder="YouTube, Twitter, Instagram veya diğer video URL'sini yapıştırın"
+                        autocomplete="off"
+                    >
+                    <button id="fetchBtn" class="btn-primary">
+                        <span class="btn-text">Getir</span>
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                    </button>
+                </div>
+                <p class="supported-sites">
+                    YouTube, Twitter/X, Instagram, TikTok, Facebook ve 1000+ site desteklenir
+                </p>
+            </section>
+
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <span class="error-icon">⚠️</span>
+                <span class="error-text"></span>
+            </div>
+
+            <!-- Video Info Section -->
+            <section class="video-section" id="videoSection" style="display: none;">
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <img id="videoThumbnail" src="" alt="Video thumbnail">
+                        <span class="video-duration" id="videoDuration"></span>
+                    </div>
+                    <div class="video-info">
+                        <h2 id="videoTitle"></h2>
+                        <p class="video-meta">
+                            <span id="videoUploader"></span>
+                            <span class="separator">•</span>
+                            <span id="videoViews"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Format Selection -->
+                <div class="format-section">
+                    <h3>Format Seçin</h3>
+                    
+                    <div class="format-tabs">
+                        <button class="format-tab active" data-tab="video">🎬 Video</button>
+                        <button class="format-tab" data-tab="audio">🎵 Sadece Ses</button>
+                    </div>
+
+                    <div class="format-content" id="videoFormats">
+                        <div class="format-list" id="videoFormatList"></div>
+                    </div>
+
+                    <div class="format-content" id="audioFormats" style="display: none;">
+                        <div class="format-list" id="audioFormatList"></div>
+                        <div class="audio-option">
+                            <button id="downloadMp3Btn" class="btn-primary btn-full">
+                                🎵 MP3 Olarak İndir (En İyi Kalite)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Progress -->
+                <div class="download-progress" id="downloadProgress" style="display: none;">
+                    <div class="progress-header">
+                        <span id="downloadStatus">İndiriliyor...</span>
+                        <button id="cancelDownload" class="btn-ghost">İptal</button>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="downloadProgressBar"></div>
+                    </div>
+                    <p class="progress-percent" id="downloadPercent">0%</p>
+                </div>
+
+                <!-- Download Complete -->
+                <div class="download-complete" id="downloadComplete" style="display: none;">
+                    <span class="complete-icon">✅</span>
+                    <span>İndirme tamamlandı!</span>
+                    <button id="openFolderBtn" class="btn-small">📂 Klasörü Aç</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settingsPanel" style="display: none;">
+            <div class="settings-header">
+                <h2>⚙️ Ayarlar</h2>
+                <button id="closeSettings" class="btn-ghost">×</button>
+            </div>
+            
+            <div class="settings-content">
+                <!-- Website Cookie Sync -->
+                <div class="setting-group">
+                    <label>🍪 +18 Video Desteği</label>
+                    <p class="setting-desc">Yaş kısıtlamalı videolar için web sitesinden çerez senkronizasyonu</p>
+                    
+                    <div class="cookie-sync-status" id="cookieSyncStatus">
+                        <span class="cookie-icon">🔒</span>
+                        <span id="cookieSyncText">Çerez yüklenmedi</span>
+                    </div>
+                    
+                    <div class="cookie-sync-actions">
+                        <button id="importCookieBtn" class="btn-small">📁 Cookie Dosyası Yükle</button>
+                        <button id="openWebsiteBtn" class="btn-small btn-accent">🌐 Web Sitesinden Al</button>
+                        <button id="deleteCookieBtn" class="btn-small btn-ghost" style="display: none;">🗑️ Sil</button>
+                    </div>
+                    
+                    <p class="setting-hint" style="margin-top: 8px;">
+                        💡 Web sitesine gidin, YouTube'a giriş yapın, çerezleri senkronize edin
+                    </p>
+                </div>
+
+                <!-- Cookie Settings -->
+                <div class="setting-group">
+                    <label>Tarayıcı Çerezi Kullanımı</label>
+                    <p class="setting-desc">Yerel tarayıcıdan çerez okuma (tarayıcı kapalıyken çalışır)</p>
+                    <div class="toggle-container">
+                        <label class="toggle">
+                            <input type="checkbox" id="useCookiesToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="cookieStatusText">Çerezler aktif</span>
+                    </div>
+                </div>
+
+                <!-- Browser Selection -->
+                <div class="setting-group" id="browserSettingGroup">
+                    <label>Çerez Tarayıcısı</label>
+                    <p class="setting-desc">Yaş kısıtlamalı videolar için giriş yaptığınız tarayıcıyı seçin</p>
+                    <div class="browser-list" id="browserList"></div>
+                </div>
+
+                <!-- Download Path -->
+                <div class="setting-group">
+                    <label>İndirme Klasörü</label>
+                    <div class="path-selector">
+                        <input type="text" id="downloadPath" readonly>
+                        <button id="selectPathBtn" class="btn-small">Değiştir</button>
+                    </div>
+                </div>
+
+                <!-- Binary Status -->
+                <div class="setting-group">
+                    <label>Bileşen Durumu</label>
+                    <div class="binary-status" id="binaryStatusList"></div>
+                    <button id="updateBinariesBtn" class="btn-small" style="margin-top: 10px;">
+                        🔄 Bileşenleri Güncelle
+                    </button>
+                </div>
+
+                <!-- App Info -->
+                <div class="setting-group">
+                    <label>Uygulama Bilgisi</label>
+                    <p class="app-version">Sürüm: 1.0.0</p>
+                    <p class="app-author">Yapımcı: Arda Mert Dedeoglu</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
