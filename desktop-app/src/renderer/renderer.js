@@ -315,6 +315,13 @@ async function checkBinaries() {
                 : `<span class="binary-missing">✗ Yüklü değil</span>`
             }
         </div>
+        <div class="binary-item">
+            <span class="binary-name">Deno</span>
+            ${status.deno && status.deno.exists 
+                ? `<span class="binary-version">✓ ${status.deno.version}</span>`
+                : `<span class="binary-missing">✗ Yüklü değil</span>`
+            }
+        </div>
     `;
 }
 

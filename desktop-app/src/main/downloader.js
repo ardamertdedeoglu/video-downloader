@@ -1,13 +1,14 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const { app } = require('electron');
-const { getBinaryPath } = require('./binary-manager');
+const { getBinaryPath, getYtdlpEnv } = require('./binary-manager');
 
 let currentProcess = null;
 
 // Get video info using yt-dlp
 async function getVideoInfo(url, cookieFile = null) {
     const ytdlpPath = getBinaryPath('yt-dlp');
+    const env = getYtdlpEnv(); // Use custom environment with deno in PATH
     
     return new Promise((resolve, reject) => {
         const args = [
@@ -25,7 +26,7 @@ async function getVideoInfo(url, cookieFile = null) {
         
         args.push(url);
 
-        const process = spawn(ytdlpPath, args);
+        const process = spawn(ytdlpPath, args, { env });
         let stdout = '';
         let stderr = '';
 
@@ -123,6 +124,7 @@ async function downloadVideo(options, onProgress) {
     const { url, formatId, audioOnly, outputPath, cookieFile = null } = options;
     const ytdlpPath = getBinaryPath('yt-dlp');
     const ffmpegPath = getBinaryPath('ffmpeg');
+    const env = getYtdlpEnv(); // Use custom environment with deno in PATH
     
     const fs = require('fs');
 
@@ -171,7 +173,7 @@ async function downloadVideo(options, onProgress) {
 
         console.log('yt-dlp command:', ytdlpPath, args.join(' '));
 
-        currentProcess = spawn(ytdlpPath, args);
+        currentProcess = spawn(ytdlpPath, args, { env });
         let lastFilename = '';
         let stderrOutput = '';
         let stdoutOutput = '';

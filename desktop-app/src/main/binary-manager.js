@@ -15,24 +15,29 @@ const PLATFORM = process.platform; // 'win32', 'darwin', 'linux'
 const BINARY_URLS = {
     win32: {
         'yt-dlp': 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
-        'ffmpeg': 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip'
+        'ffmpeg': 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip',
+        'deno': 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip'
     },
     darwin: {
         'yt-dlp': 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos',
-        'ffmpeg': 'https://evermeet.cx/ffmpeg/getrelease/zip'
+        'ffmpeg': 'https://evermeet.cx/ffmpeg/getrelease/zip',
+        'deno': 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-apple-darwin.zip'
     },
     linux: {
         'yt-dlp': 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp',
-        'ffmpeg': 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz'
+        'ffmpeg': 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz',
+        'deno': 'https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip'
     }
 };
 
 // Get binary executable names
 function getBinaryName(name) {
     if (PLATFORM === 'win32') {
-        return name === 'yt-dlp' ? 'yt-dlp.exe' : 'ffmpeg.exe';
+        if (name === 'yt-dlp') return 'yt-dlp.exe';
+        if (name === 'ffmpeg') return 'ffmpeg.exe';
+        if (name === 'deno') return 'deno.exe';
     }
-    return name === 'yt-dlp' ? 'yt-dlp' : 'ffmpeg';
+    return name;
 }
 
 // Get full binary path
@@ -44,12 +49,15 @@ function getBinaryPath(name) {
 async function checkBinariesStatus() {
     const ytdlpPath = getBinaryPath('yt-dlp');
     const ffmpegPath = getBinaryPath('ffmpeg');
+    const denoPath = getBinaryPath('deno');
 
     const ytdlpExists = fs.existsSync(ytdlpPath);
     const ffmpegExists = fs.existsSync(ffmpegPath);
+    const denoExists = fs.existsSync(denoPath);
 
     let ytdlpVersion = null;
     let ffmpegVersion = null;
+    let denoVersion = null;
 
     if (ytdlpExists) {
         try {
@@ -69,10 +77,21 @@ async function checkBinariesStatus() {
         }
     }
 
+    if (denoExists) {
+        try {
+            const output = execSync(`"${denoPath}" --version`, { encoding: 'utf8' });
+            const match = output.match(/deno (\S+)/);
+            denoVersion = match ? match[1] : 'unknown';
+        } catch (e) {
+            // Binary might be corrupted
+        }
+    }
+
     return {
         ytdlp: { exists: ytdlpExists, version: ytdlpVersion },
         ffmpeg: { exists: ffmpegExists, version: ffmpegVersion },
-        ready: ytdlpExists && ffmpegExists && ytdlpVersion && ffmpegVersion
+        deno: { exists: denoExists, version: denoVersion },
+        ready: ytdlpExists && ffmpegExists && denoExists && ytdlpVersion && ffmpegVersion && denoVersion
     };
 }
 
@@ -230,6 +249,28 @@ async function downloadBinaries(onProgress) {
     fs.unlinkSync(archivePath);
     
     onProgress({ step: 'ffmpeg', percent: 100, status: 'complete' });
+
+    // Download Deno (JavaScript runtime for yt-dlp)
+    onProgress({ step: 'deno', percent: 0, status: 'downloading' });
+    
+    const denoUrl = BINARY_URLS[PLATFORM]['deno'];
+    const denoArchivePath = path.join(BINARIES_DIR, 'deno.zip');
+    
+    await downloadFile(
+        denoUrl,
+        denoArchivePath,
+        (percent) => onProgress({ step: 'deno', percent: percent * 0.9, status: 'downloading' })
+    );
+
+    onProgress({ step: 'deno', percent: 90, status: 'extracting' });
+    
+    // Extract deno
+    await extractDeno(denoArchivePath, BINARIES_DIR);
+    
+    // Cleanup archive
+    fs.unlinkSync(denoArchivePath);
+    
+    onProgress({ step: 'deno', percent: 100, status: 'complete' });
 }
 
 // Download a file with progress
@@ -345,11 +386,47 @@ async function extractFfmpeg(archivePath, destDir) {
     }
 }
 
+// Extract deno from archive
+async function extractDeno(archivePath, destDir) {
+    const AdmZip = require('adm-zip');
+    
+    const zip = new AdmZip(archivePath);
+    const entries = zip.getEntries();
+    
+    // Find deno binary in archive
+    for (const entry of entries) {
+        const name = entry.entryName.toLowerCase();
+        if (name === 'deno.exe' || name === 'deno') {
+            const targetPath = path.join(destDir, PLATFORM === 'win32' ? 'deno.exe' : 'deno');
+            fs.writeFileSync(targetPath, entry.getData());
+            
+            if (PLATFORM !== 'win32') {
+                fs.chmodSync(targetPath, '755');
+            }
+            return;
+        }
+    }
+    throw new Error('deno not found in archive');
+}
+
+// Get environment variables for running yt-dlp with our binaries
+function getYtdlpEnv() {
+    const env = { ...process.env };
+    
+    // Add our binaries directory to PATH so yt-dlp can find deno and ffmpeg
+    const currentPath = env.PATH || env.Path || '';
+    env.PATH = BINARIES_DIR + (PLATFORM === 'win32' ? ';' : ':') + currentPath;
+    
+    return env;
+}
+
 module.exports = { 
     getBinaryPath, 
     checkBinariesStatus, 
     checkAndDownloadBinaries, 
     downloadBinaries,
     checkYtdlpUpdate,
-    updateYtdlp
+    updateYtdlp,
+    getYtdlpEnv,
+    BINARIES_DIR
 };
