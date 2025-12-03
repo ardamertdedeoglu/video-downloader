@@ -6,7 +6,7 @@ const { getBinaryPath } = require('./binary-manager');
 let currentProcess = null;
 
 // Get video info using yt-dlp
-async function getVideoInfo(url, browser = 'chrome', useCookies = true, cookieFile = null) {
+async function getVideoInfo(url, cookieFile = null) {
     const ytdlpPath = getBinaryPath('yt-dlp');
     
     return new Promise((resolve, reject) => {
@@ -15,11 +15,12 @@ async function getVideoInfo(url, browser = 'chrome', useCookies = true, cookieFi
             '--no-download'
         ];
         
-        // Priority: 1. Cookie file from website, 2. Browser cookies
+        // Use cookie file if available
         if (cookieFile) {
-            args.push('--cookies', cookieFile);
-        } else if (useCookies && browser && browser !== 'none') {
-            args.push('--cookies-from-browser', browser);
+            const fs = require('fs');
+            if (fs.existsSync(cookieFile)) {
+                args.push('--cookies', cookieFile);
+            }
         }
         
         args.push(url);
@@ -58,13 +59,9 @@ async function getVideoInfo(url, browser = 'chrome', useCookies = true, cookieFi
             } else {
                 // Check for common errors
                 if (stderr.includes('Sign in to confirm your age')) {
-                    reject(new Error('Bu video yaş doğrulaması gerektiriyor. Lütfen tarayıcınızda YouTube\'a giriş yaptığınızdan emin olun.'));
+                    reject(new Error('Bu video yaş doğrulaması gerektiriyor. Lütfen Ayarlar\'dan YouTube\'a giriş yapın.'));
                 } else if (stderr.includes('Video unavailable')) {
                     reject(new Error('Video kullanılamıyor veya özel.'));
-                } else if (stderr.includes('Could not copy') && stderr.includes('cookie database')) {
-                    reject(new Error('Tarayıcı çerezlerine erişilemiyor. Lütfen ' + browser.toUpperCase() + ' tarayıcısını kapatıp tekrar deneyin, veya Ayarlar\'dan farklı bir tarayıcı seçin.'));
-                } else if (stderr.includes('cookies')) {
-                    reject(new Error('Çerezler okunamadı. Lütfen seçili tarayıcının kurulu olduğundan emin olun.'));
                 } else {
                     reject(new Error(stderr || 'Video bilgisi alınamadı'));
                 }
@@ -123,27 +120,36 @@ function parseFormats(formats) {
 
 // Download video
 async function downloadVideo(options, onProgress) {
-    const { url, formatId, audioOnly, browser, outputPath, useCookies = true, cookieFile = null } = options;
+    const { url, formatId, audioOnly, outputPath, cookieFile = null } = options;
     const ytdlpPath = getBinaryPath('yt-dlp');
     const ffmpegPath = getBinaryPath('ffmpeg');
+    
+    const fs = require('fs');
+
+    // Validate paths
+    if (!fs.existsSync(ytdlpPath)) {
+        throw new Error(`yt-dlp bulunamadı: ${ytdlpPath}`);
+    }
+    if (!fs.existsSync(ffmpegPath)) {
+        throw new Error(`ffmpeg bulunamadı: ${ffmpegPath}`);
+    }
+    if (!outputPath) {
+        throw new Error('İndirme klasörü belirtilmedi');
+    }
 
     return new Promise((resolve, reject) => {
         const args = [];
         
-        // Priority: 1. Cookie file from website, 2. Browser cookies
-        if (cookieFile) {
+        // Use cookie file if available
+        if (cookieFile && fs.existsSync(cookieFile)) {
             args.push('--cookies', cookieFile);
-        } else if (useCookies && browser && browser !== 'none') {
-            args.push('--cookies-from-browser', browser);
         }
         
         args.push(
             '--ffmpeg-location', path.dirname(ffmpegPath),
             '--newline',
             '--progress',
-            '-o', path.join(outputPath, '%(title)s.%(ext)s'),
-            // Re-encode audio to AAC for compatibility (Opus not supported by many players)
-            '--postprocessor-args', 'ffmpeg:-c:v copy -c:a aac -b:a 192k'
+            '-o', path.join(outputPath, '%(title)s.%(ext)s')
         );
 
         if (audioOnly) {
@@ -152,19 +158,28 @@ async function downloadVideo(options, onProgress) {
             // Use the format selector which includes video+audio
             args.push('-f', formatId);
             args.push('--merge-output-format', 'mp4');
+            // Re-encode audio to AAC for compatibility
+            args.push('--postprocessor-args', 'ffmpeg:-c:v copy -c:a aac -b:a 192k');
         } else {
             // Best quality with audio
             args.push('-f', 'bv*+ba/b');
             args.push('--merge-output-format', 'mp4');
+            args.push('--postprocessor-args', 'ffmpeg:-c:v copy -c:a aac -b:a 192k');
         }
 
         args.push(url);
 
+        console.log('yt-dlp command:', ytdlpPath, args.join(' '));
+
         currentProcess = spawn(ytdlpPath, args);
         let lastFilename = '';
+        let stderrOutput = '';
+        let stdoutOutput = '';
 
         currentProcess.stdout.on('data', (data) => {
             const output = data.toString();
+            stdoutOutput += output;
+            console.log('yt-dlp stdout:', output);
             
             // Parse progress
             const progressMatch = output.match(/\[download\]\s+(\d+\.?\d*)%/);
@@ -178,6 +193,12 @@ async function downloadVideo(options, onProgress) {
             if (filenameMatch) {
                 lastFilename = filenameMatch[1];
             }
+            
+            // Also check for "has already been downloaded"
+            const alreadyMatch = output.match(/\[download\] (.+) has already been downloaded/);
+            if (alreadyMatch) {
+                lastFilename = alreadyMatch[1];
+            }
 
             // Merging status
             if (output.includes('[Merger]') || output.includes('[ffmpeg]')) {
@@ -186,17 +207,35 @@ async function downloadVideo(options, onProgress) {
         });
 
         currentProcess.stderr.on('data', (data) => {
+            stderrOutput += data.toString();
             console.error('yt-dlp stderr:', data.toString());
         });
 
         currentProcess.on('close', (code) => {
             currentProcess = null;
+            console.log('yt-dlp exit code:', code);
+            console.log('Full stdout:', stdoutOutput);
+            console.log('Full stderr:', stderrOutput);
+            
             if (code === 0) {
-                resolve({ success: true, filename: lastFilename });
+                // Check if video was already downloaded
+                const alreadyDownloaded = stdoutOutput.includes('has already been downloaded');
+                resolve({ success: true, filename: lastFilename, alreadyDownloaded });
             } else if (code === null) {
                 reject(new Error('İndirme iptal edildi'));
             } else {
-                reject(new Error('İndirme başarısız oldu'));
+                // Provide more detailed error
+                let errorMsg = 'İndirme başarısız oldu';
+                if (stderrOutput.includes('Sign in to confirm your age')) {
+                    errorMsg = 'Bu video yaş doğrulaması gerektiriyor. Lütfen YouTube\'a giriş yapın.';
+                } else if (stderrOutput.includes('Video unavailable')) {
+                    errorMsg = 'Video kullanılamıyor veya özel.';
+                } else if (stderrOutput.includes('Unsupported URL')) {
+                    errorMsg = 'Desteklenmeyen URL formatı.';
+                } else if (stderrOutput) {
+                    errorMsg = stderrOutput.split('\n')[0] || errorMsg;
+                }
+                reject(new Error(errorMsg));
             }
         });
 

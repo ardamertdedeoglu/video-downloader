@@ -72,6 +72,7 @@ async function init() {
     await loadSettings();
     await checkBinaries();
     await checkCookieStatus();
+    await checkAndShowLoginStatus();
 }
 
 // Event Listeners
@@ -300,17 +301,12 @@ async function checkBinaries() {
 // Check cookie status
 async function checkCookieStatus() {
     const status = await window.electronAPI.getCookieStatus();
-    const loginStatus = await window.electronAPI.checkLoginStatus();
     
-    if (status.hasCookies || loginStatus.isLoggedIn) {
+    // Cookie dosyası varsa = giriş yapılmış demek
+    if (status.hasCookies && status.cookieCount > 0) {
         elements.cookieSyncStatus.classList.add('synced');
         elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '✅';
-        
-        if (loginStatus.isLoggedIn) {
-            elements.cookieSyncText.textContent = `Giriş yapıldı (${status.cookieCount || loginStatus.cookieCount} çerez)`;
-        } else {
-            elements.cookieSyncText.textContent = `${status.cookieCount} çerez yüklü`;
-        }
+        elements.cookieSyncText.textContent = `YouTube hesabı bağlı (${status.cookieCount} çerez)`;
         
         elements.youtubeLoginBtn.style.display = 'none';
         elements.refreshCookiesBtn.style.display = 'inline-block';
@@ -322,6 +318,16 @@ async function checkCookieStatus() {
         elements.youtubeLoginBtn.style.display = 'inline-block';
         elements.refreshCookiesBtn.style.display = 'none';
         elements.deleteCookieBtn.style.display = 'none';
+    }
+}
+
+// Check and show login status on startup (for already logged in users)
+async function checkAndShowLoginStatus() {
+    const status = await window.electronAPI.getCookieStatus();
+    
+    // If user has cookies, they're logged in
+    if (status.hasCookies && status.cookieCount > 0) {
+        console.log('YouTube hesabı zaten bağlı, +18 videolar indirilebilir.');
     }
 }
 
@@ -498,6 +504,18 @@ async function downloadVideo(formatId, audioOnly = false) {
         // Success
         elements.downloadProgress.style.display = 'none';
         elements.downloadComplete.style.display = 'flex';
+        
+        // Check if video was already downloaded
+        const completeIcon = elements.downloadComplete.querySelector('.complete-icon');
+        const completeText = elements.downloadComplete.querySelector('.complete-text');
+        
+        if (result.data && result.data.alreadyDownloaded) {
+            completeIcon.textContent = '📁';
+            completeText.textContent = 'Bu video zaten indirilmiş!';
+        } else {
+            completeIcon.textContent = '✅';
+            completeText.textContent = 'İndirme tamamlandı!';
+        }
         
     } catch (error) {
         showError(error.message || 'İndirme başarısız oldu');

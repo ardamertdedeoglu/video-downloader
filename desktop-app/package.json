@@ -35,6 +35,13 @@
       "node_modules/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "binaries",
+        "to": "binaries",
+        "filter": ["**/*.exe", "**/yt-dlp", "**/ffmpeg"]
+      }
+    ],
     "publish": {
       "provider": "github",
       "owner": "ardamertdedeoglu",
@@ -46,25 +53,19 @@
           "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "icon": "build/icon.ico"
+      ]
     },
     "mac": {
       "target": ["dmg"],
-      "icon": "build/icon.icns",
       "category": "public.app-category.utilities"
     },
     "linux": {
       "target": ["AppImage"],
-      "icon": "build/icon.png",
       "category": "Utility"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
-      "installerHeaderIcon": "build/icon.ico"
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

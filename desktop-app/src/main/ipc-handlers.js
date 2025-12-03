@@ -17,10 +17,8 @@ function setupIpcHandlers(store) {
     // Get video info
     ipcMain.handle('get-video-info', async (event, url) => {
         try {
-            const browser = store.get('browser');
-            const useCookies = store.get('useCookies', true);
             const cookieFile = getCookieFilePath();
-            const info = await getVideoInfo(url, browser, useCookies, cookieFile);
+            const info = await getVideoInfo(url, cookieFile);
             return { success: true, data: info };
         } catch (error) {
             return { success: false, error: error.message };
@@ -30,15 +28,11 @@ function setupIpcHandlers(store) {
     // Download video
     ipcMain.handle('download-video', async (event, options) => {
         try {
-            const browser = store.get('browser');
             const downloadPath = store.get('downloadPath');
-            const useCookies = store.get('useCookies', true);
             const cookieFile = getCookieFilePath();
             
             const result = await downloadVideo({
                 ...options,
-                browser,
-                useCookies,
                 cookieFile,
                 outputPath: downloadPath
             }, (progress) => {
@@ -112,6 +106,9 @@ function setupIpcHandlers(store) {
     // Get cookie status
     ipcMain.handle('get-cookie-status', () => {
         const cookieInfo = loadCookiesFromFile();
+        const cookiePath = getCookieFilePath();
+        console.log('Cookie file path:', cookiePath);
+        console.log('Cookie info:', cookieInfo);
         return {
             hasCookies: cookieInfo !== null && cookieInfo.exists,
             cookieCount: cookieInfo?.cookieCount || 0,

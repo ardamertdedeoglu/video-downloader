@@ -10,11 +10,9 @@ const { checkAndDownloadBinaries } = require('./binary-manager');
 // Store for settings
 const store = new Store({
     defaults: {
-        browser: 'chrome',
         downloadPath: app.getPath('downloads'),
         theme: 'dark',
-        binariesDownloaded: false,
-        useCookies: true
+        binariesDownloaded: false
     }
 });
 
@@ -109,11 +107,9 @@ ipcMain.handle('install-update', () => {
 // IPC for settings
 ipcMain.handle('get-settings', () => {
     return {
-        browser: store.get('browser'),
         downloadPath: store.get('downloadPath'),
         theme: store.get('theme'),
-        binariesDownloaded: store.get('binariesDownloaded'),
-        useCookies: store.get('useCookies')
+        binariesDownloaded: store.get('binariesDownloaded')
     };
 });
 
