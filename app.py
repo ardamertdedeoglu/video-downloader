@@ -125,6 +125,16 @@ except Exception as e:
 # İndirme durumlarını takip etmek için
 download_status = {}
 
+# Bellek temizliği için eski download'ları sil
+def cleanup_old_downloads():
+    """1 saatten eski download durumlarını temizle"""
+    current_time = time.time()
+    expired = [did for did, data in download_status.items() 
+               if current_time - data.get('created_at', current_time) > 3600]
+    for did in expired:
+        del download_status[did]
+    return len(expired)
+
 # Ortam tespiti
 IS_SERVER = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER') or os.environ.get('FLY_APP_NAME')
 
@@ -205,7 +215,12 @@ def get_video_info(url, cookie_file=None):
 def download_video(url, format_id, download_id, cookie_file=None):
     """Video indir"""
     print(f"[DEBUG] Starting download for {download_id} with cookie: {cookie_file}", file=sys.stderr)
-    download_status[download_id] = {'status': 'downloading', 'progress': 0, 'filename': None}
+    download_status[download_id] = {
+        'status': 'downloading', 
+        'progress': 0, 
+        'filename': None,
+        'created_at': time.time()
+    }
     
     def progress_hook(d):
         if d['status'] == 'downloading':
@@ -586,8 +601,27 @@ def add_cors_headers(response):
 
 @app.route('/health')
 def health_check():
-    """Health check endpoint"""
-    return jsonify({'status': 'ok', 'message': 'Application is running'})
+    """Health check endpoint - Railway uses this to check if app is alive"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Application is running',
+        'timestamp': time.time()
+    })
+
+@app.route('/ping')
+def ping():
+    """Simple ping endpoint for keep-alive"""
+    return 'pong', 200
+
+@app.route('/cleanup')
+def manual_cleanup():
+    """Manuel temizlik endpoint'i"""
+    expired_tokens = cleanup_expired_tokens()
+    expired_downloads = cleanup_old_downloads()
+    return jsonify({
+        'cleaned_tokens': expired_tokens,
+        'cleaned_downloads': expired_downloads
+    })
 
 @app.route('/privacy-policy')
 def privacy_policy():
