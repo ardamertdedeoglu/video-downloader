@@ -252,6 +252,172 @@
         color: #aaa;
       }
 
+      /* Desktop App Download Section */
+      .app-download-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 30px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .app-download-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        animation: shimmer 3s infinite linear;
+      }
+
+      @keyframes shimmer {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .app-download-content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .app-download-section h2 {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .app-download-section .app-subtitle {
+        color: rgba(255,255,255,0.9);
+        margin-bottom: 20px;
+        font-size: 1rem;
+      }
+
+      .app-features {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 25px;
+      }
+
+      .app-feature {
+        background: rgba(255,255,255,0.15);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .download-buttons-app {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      .btn-download-app {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 30px;
+        background: rgba(255,255,255,0.95);
+        color: #1a1a2e;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      }
+
+      .btn-download-app:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        background: #fff;
+      }
+
+      .btn-download-app .icon {
+        font-size: 1.4rem;
+      }
+
+      .btn-download-app .btn-content {
+        text-align: left;
+      }
+
+      .btn-download-app .btn-label {
+        font-size: 0.75rem;
+        color: #666;
+        font-weight: normal;
+      }
+
+      .btn-download-app .btn-title {
+        font-size: 1rem;
+      }
+
+      .app-version {
+        margin-top: 15px;
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.7);
+      }
+
+      .app-benefits {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+        text-align: left;
+      }
+
+      .benefit-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        background: rgba(255,255,255,0.1);
+        padding: 12px 15px;
+        border-radius: 10px;
+      }
+
+      .benefit-item .benefit-icon {
+        font-size: 1.3rem;
+        flex-shrink: 0;
+      }
+
+      .benefit-item .benefit-text {
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+
+      .or-divider {
+        display: flex;
+        align-items: center;
+        margin: 30px 0;
+        color: #666;
+      }
+
+      .or-divider::before,
+      .or-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #3a3a5a;
+      }
+
+      .or-divider span {
+        padding: 0 20px;
+        font-size: 0.9rem;
+      }
+
       /* Cookie Section */
       .cookie-section {
         background: #2a2a4a;
@@ -527,6 +693,56 @@
     <div class="container">
       <h1>🎬 Video İndirici</h1>
       <p class="subtitle">YouTube ve diğer sitelerden video indirin</p>
+
+      <!-- Desktop App Download Section -->
+      <div class="app-download-section">
+        <div class="app-download-content">
+          <h2>🖥️ Masaüstü Uygulaması</h2>
+          <p class="app-subtitle">Daha hızlı, daha kolay video indirme deneyimi için uygulamayı indirin</p>
+          
+          <div class="app-features">
+            <span class="app-feature">✅ Reklamsız</span>
+            <span class="app-feature">⚡ Daha Hızlı</span>
+            <span class="app-feature">🔒 +18 Video Desteği</span>
+            <span class="app-feature">📁 Doğrudan Bilgisayara Kaydet</span>
+          </div>
+          
+          <div class="download-buttons-app">
+            <a href="https://github.com/ardamertdedeoglu/video-downloader/releases/latest/download/Video.Downloader.Setup.1.0.0.exe" class="btn-download-app">
+              <span class="icon">⊞</span>
+              <span class="btn-content">
+                <span class="btn-label">İndir</span>
+                <span class="btn-title">Windows için</span>
+              </span>
+            </a>
+          </div>
+          
+          <p class="app-version">v1.0.0 • Windows 10/11</p>
+          
+          <div class="app-benefits">
+            <div class="benefit-item">
+              <span class="benefit-icon">🎯</span>
+              <span class="benefit-text">Tek tıkla video indirme - URL yapıştır, formatı seç, indir</span>
+            </div>
+            <div class="benefit-item">
+              <span class="benefit-icon">🔐</span>
+              <span class="benefit-text">YouTube hesabınızla giriş yaparak yaş kısıtlamalı videolara erişin</span>
+            </div>
+            <div class="benefit-item">
+              <span class="benefit-icon">💾</span>
+              <span class="benefit-text">MP4 veya MP3 formatında kaydedin</span>
+            </div>
+            <div class="benefit-item">
+              <span class="benefit-icon">🔄</span>
+              <span class="benefit-text">Otomatik güncellemeler ile her zaman güncel kalın</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="or-divider">
+        <span>veya web sürümünü kullanın</span>
+      </div>
 
       <!-- Cookie Section -->
       <div class="cookie-section">
