@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Binaries
     checkBinaries: () => ipcRenderer.invoke('check-binaries'),
     downloadBinaries: () => ipcRenderer.invoke('download-binaries'),
+    checkYtdlpUpdate: () => ipcRenderer.invoke('check-ytdlp-update'),
+    updateYtdlp: () => ipcRenderer.invoke('update-ytdlp'),
     
     // Cookie sync
     autoSyncCookies: () => ipcRenderer.invoke('auto-sync-cookies'),

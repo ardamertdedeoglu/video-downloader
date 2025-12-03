@@ -62,7 +62,10 @@ const elements = {
     youtubeLoginBtn: document.getElementById('youtubeLoginBtn'),
     refreshCookiesBtn: document.getElementById('refreshCookiesBtn'),
     importCookieBtn: document.getElementById('importCookieBtn'),
-    deleteCookieBtn: document.getElementById('deleteCookieBtn')
+    deleteCookieBtn: document.getElementById('deleteCookieBtn'),
+    // yt-dlp update
+    updateYtdlpBtn: document.getElementById('updateYtdlpBtn'),
+    ytdlpUpdateInfo: document.getElementById('ytdlpUpdateInfo')
 };
 
 // Initialize
@@ -71,6 +74,7 @@ async function init() {
     setupIpcListeners();
     await loadSettings();
     await checkBinaries();
+    await checkYtdlpUpdate();
     await checkCookieStatus();
     await checkAndShowLoginStatus();
 }
@@ -138,7 +142,23 @@ function setupEventListeners() {
     
     elements.updateBinariesBtn.addEventListener('click', async () => {
         elements.binaryModal.classList.add('show');
-        await window.electronAPI.downloadBinaries();
+        elements.binaryStatus.textContent = 'Bileşenler indiriliyor...';
+        elements.binaryProgress.style.width = '0%';
+        elements.binaryProgressText.textContent = 'Başlatılıyor...';
+        
+        try {
+            const result = await window.electronAPI.downloadBinaries();
+            if (result.success) {
+                elements.binaryModal.classList.remove('show');
+                showSuccess('Bileşenler başarıyla güncellendi!');
+                await checkBinaries();
+                await checkYtdlpUpdate();
+            } else {
+                elements.binaryStatus.textContent = 'Hata: ' + result.error;
+            }
+        } catch (error) {
+            elements.binaryStatus.textContent = 'Hata: ' + error.message;
+        }
     });
     
     // Cookie sync buttons
@@ -296,6 +316,47 @@ async function checkBinaries() {
             }
         </div>
     `;
+}
+
+// Check if yt-dlp needs update
+async function checkYtdlpUpdate() {
+    try {
+        const result = await window.electronAPI.checkYtdlpUpdate();
+        
+        if (result.needsUpdate) {
+            elements.updateYtdlpBtn.style.display = 'inline-block';
+            elements.ytdlpUpdateInfo.style.display = 'block';
+            elements.ytdlpUpdateInfo.textContent = `⚠️ Güncelleme mevcut: ${result.currentVersion || 'bilinmiyor'} → ${result.latestVersion}`;
+            
+            // Bind click handler
+            elements.updateYtdlpBtn.onclick = async () => {
+                elements.updateYtdlpBtn.disabled = true;
+                elements.updateYtdlpBtn.textContent = '⏳ Güncelleniyor...';
+                
+                try {
+                    const updateResult = await window.electronAPI.updateYtdlp();
+                    if (updateResult.success) {
+                        showSuccess(`yt-dlp güncellendi: ${updateResult.version}`);
+                        elements.updateYtdlpBtn.style.display = 'none';
+                        elements.ytdlpUpdateInfo.style.display = 'none';
+                        await checkBinaries();
+                    } else {
+                        showError('Güncelleme başarısız: ' + (updateResult.error || 'Bilinmeyen hata'));
+                    }
+                } catch (error) {
+                    showError('Güncelleme hatası: ' + error.message);
+                } finally {
+                    elements.updateYtdlpBtn.disabled = false;
+                    elements.updateYtdlpBtn.textContent = '⬆️ yt-dlp Güncelle';
+                }
+            };
+        } else {
+            elements.updateYtdlpBtn.style.display = 'none';
+            elements.ytdlpUpdateInfo.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('yt-dlp update check failed:', error);
+    }
 }
 
 // Check cookie status

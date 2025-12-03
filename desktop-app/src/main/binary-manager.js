@@ -76,6 +76,91 @@ async function checkBinariesStatus() {
     };
 }
 
+// Get latest yt-dlp version from GitHub
+async function getLatestYtdlpVersion() {
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: 'api.github.com',
+            path: '/repos/yt-dlp/yt-dlp/releases/latest',
+            headers: { 'User-Agent': 'video-downloader-app' }
+        };
+        
+        https.get(options, (response) => {
+            let data = '';
+            response.on('data', chunk => data += chunk);
+            response.on('end', () => {
+                try {
+                    const release = JSON.parse(data);
+                    resolve(release.tag_name || null);
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        }).on('error', () => resolve(null));
+    });
+}
+
+// Check if yt-dlp needs update
+async function checkYtdlpUpdate() {
+    const status = await checkBinariesStatus();
+    if (!status.ytdlp.exists || !status.ytdlp.version) {
+        return { needsUpdate: true, currentVersion: null, latestVersion: null };
+    }
+    
+    const latestVersion = await getLatestYtdlpVersion();
+    if (!latestVersion) {
+        return { needsUpdate: false, currentVersion: status.ytdlp.version, latestVersion: null };
+    }
+    
+    // Compare versions (yt-dlp uses date-based versioning like 2024.12.03)
+    const current = status.ytdlp.version.replace(/\./g, '');
+    const latest = latestVersion.replace(/\./g, '');
+    
+    return {
+        needsUpdate: latest > current,
+        currentVersion: status.ytdlp.version,
+        latestVersion: latestVersion
+    };
+}
+
+// Update only yt-dlp
+async function updateYtdlp(onProgress) {
+    // Ensure binaries directory exists
+    if (!fs.existsSync(BINARIES_DIR)) {
+        fs.mkdirSync(BINARIES_DIR, { recursive: true });
+    }
+    
+    const ytdlpPath = getBinaryPath('yt-dlp');
+    
+    // Delete old version if exists
+    if (fs.existsSync(ytdlpPath)) {
+        fs.unlinkSync(ytdlpPath);
+    }
+    
+    // Download latest
+    onProgress({ step: 'yt-dlp', percent: 0, status: 'downloading' });
+    await downloadFile(
+        BINARY_URLS[PLATFORM]['yt-dlp'],
+        ytdlpPath,
+        (percent) => onProgress({ step: 'yt-dlp', percent, status: 'downloading' })
+    );
+    
+    // Make executable on Unix
+    if (PLATFORM !== 'win32') {
+        fs.chmodSync(ytdlpPath, '755');
+    }
+    
+    onProgress({ step: 'yt-dlp', percent: 100, status: 'complete' });
+    
+    // Return new version
+    try {
+        const newVersion = execSync(`"${ytdlpPath}" --version`, { encoding: 'utf8' }).trim();
+        return { success: true, version: newVersion };
+    } catch (e) {
+        return { success: true, version: 'unknown' };
+    }
+}
+
 // Check and download binaries if needed (called on first run)
 async function checkAndDownloadBinaries(mainWindow, store) {
     const status = await checkBinariesStatus();
@@ -264,5 +349,7 @@ module.exports = {
     getBinaryPath, 
     checkBinariesStatus, 
     checkAndDownloadBinaries, 
-    downloadBinaries 
+    downloadBinaries,
+    checkYtdlpUpdate,
+    updateYtdlp
 };

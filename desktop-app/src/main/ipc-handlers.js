@@ -1,6 +1,6 @@
 const { ipcMain, dialog, BrowserWindow } = require('electron');
 const { getVideoInfo, downloadVideo, cancelDownload } = require('./downloader');
-const { checkBinariesStatus, downloadBinaries } = require('./binary-manager');
+const { checkBinariesStatus, downloadBinaries, checkYtdlpUpdate, updateYtdlp } = require('./binary-manager');
 const { 
     autoSyncCookies,
     quickSyncFromSession,
@@ -65,6 +65,28 @@ function setupIpcHandlers(store) {
             });
             store.set('binariesDownloaded', true);
             return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Check if yt-dlp needs update
+    ipcMain.handle('check-ytdlp-update', async () => {
+        try {
+            const result = await checkYtdlpUpdate();
+            return result;
+        } catch (error) {
+            return { needsUpdate: false, error: error.message };
+        }
+    });
+
+    // Update yt-dlp
+    ipcMain.handle('update-ytdlp', async (event) => {
+        try {
+            const result = await updateYtdlp((progress) => {
+                event.sender.send('binaries-progress', progress);
+            });
+            return result;
         } catch (error) {
             return { success: false, error: error.message };
         }
