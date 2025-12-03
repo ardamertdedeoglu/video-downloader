@@ -3,8 +3,14 @@ __pycache__/
 *.pyc
 downloads/*
 !downloads/.gitkeep
-node_modules/*
-desktop-app/binaries/*.exe
-desktop-app/dist/*
 .env
 *.log
+
+# Desktop app
+desktop-app/node_modules/
+desktop-app/binaries/*.exe
+desktop-app/binaries/yt-dlp.exe
+desktop-app/binaries/ffmpeg.exe
+desktop-app/binaries/ffmpeg/
+desktop-app/dist/
+desktop-app/out/
