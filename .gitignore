@@ -3,5 +3,8 @@ __pycache__/
 *.pyc
 downloads/*
 !downloads/.gitkeep
+node_modules/*
+desktop-app/binaries/*.exe
+desktop-app/dist/*
 .env
 *.log
