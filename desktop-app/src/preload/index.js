@@ -77,6 +77,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('update-progress', (event, percent) => callback(percent));
     },
     
+    onUpdateError: (callback) => {
+        ipcRenderer.on('update-error', (event, error) => callback(error));
+    },
+    
     // Remove listeners
     removeAllListeners: (channel) => {
         ipcRenderer.removeAllListeners(channel);

@@ -13,6 +13,10 @@ const elements = {
     
     // Update banner
     updateBanner: document.getElementById('updateBanner'),
+    updateText: document.getElementById('updateText'),
+    updateProgress: document.getElementById('updateProgress'),
+    updateProgressBar: document.getElementById('updateProgressBar'),
+    updatePercent: document.getElementById('updatePercent'),
     updateBtn: document.getElementById('updateBtn'),
     dismissUpdate: document.getElementById('dismissUpdate'),
     
@@ -235,8 +239,12 @@ function setupEventListeners() {
     
     // Update
     elements.updateBtn.addEventListener('click', async () => {
-        elements.updateBtn.textContent = 'İndiriliyor...';
-        elements.updateBtn.disabled = true;
+        elements.updateText.textContent = '⬇️ Güncelleme başlatılıyor...';
+        elements.updateBtn.style.display = 'none';
+        elements.updateProgress.style.display = 'block';
+        elements.updateProgressBar.style.width = '0%';
+        elements.updatePercent.style.display = 'inline';
+        elements.updatePercent.textContent = '%0';
         await window.electronAPI.downloadUpdate();
     });
     
@@ -297,13 +305,47 @@ function setupIpcListeners() {
     // Update events
     window.electronAPI.onUpdateAvailable((info) => {
         elements.updateBanner.style.display = 'flex';
-        elements.updateBanner.querySelector('span').textContent = `🎉 Yeni sürüm mevcut: v${info.version}`;
+        elements.updateText.textContent = `🎉 Yeni sürüm mevcut: v${info.version}`;
+        elements.updateProgress.style.display = 'none';
+        elements.updatePercent.style.display = 'none';
+        elements.updateBtn.style.display = 'inline-block';
+        elements.updateBtn.textContent = 'Güncelle';
+        elements.updateBtn.disabled = false;
     });
     
+    window.electronAPI.onUpdateProgress((percent) => {
+        const roundedPercent = Math.round(percent);
+        elements.updateText.textContent = '⬇️ Güncelleme indiriliyor...';
+        elements.updateProgress.style.display = 'block';
+        elements.updatePercent.style.display = 'inline';
+        elements.updateProgressBar.style.width = `${roundedPercent}%`;
+        elements.updatePercent.textContent = `%${roundedPercent}`;
+        elements.updateBtn.style.display = 'none';
+    });
+
     window.electronAPI.onUpdateDownloaded(() => {
+        elements.updateText.textContent = '✅ Güncelleme hazır!';
+        elements.updateProgress.style.display = 'none';
+        elements.updatePercent.style.display = 'none';
+        elements.updateBtn.style.display = 'inline-block';
         elements.updateBtn.textContent = 'Yeniden Başlat';
         elements.updateBtn.disabled = false;
         elements.updateBtn.onclick = () => window.electronAPI.installUpdate();
+    });
+    
+    window.electronAPI.onUpdateError((error) => {
+        elements.updateText.textContent = '❌ Güncelleme hatası';
+        elements.updateProgress.style.display = 'none';
+        elements.updatePercent.style.display = 'none';
+        elements.updateBtn.style.display = 'inline-block';
+        elements.updateBtn.textContent = 'Tekrar Dene';
+        elements.updateBtn.disabled = false;
+        elements.updateBtn.onclick = async () => {
+            elements.updateBtn.textContent = 'Deneniyor...';
+            elements.updateBtn.disabled = true;
+            await window.electronAPI.downloadUpdate();
+        };
+        console.error('Update error:', error);
     });
 }
 

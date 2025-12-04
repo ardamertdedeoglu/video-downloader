@@ -25,7 +25,7 @@
   },
   "build": {
     "appId": "com.ardamert.videodownloader",
-    "productName": "Video Downloader",
+    "productName": "Video-Downloader",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -47,6 +47,7 @@
       "owner": "ardamertdedeoglu",
       "repo": "video-downloader"
     },
+    "artifactName": "${productName}-Setup-${version}.${ext}",
     "win": {
       "target": [
         {

@@ -96,6 +96,9 @@ function setupAutoUpdater() {
 
     autoUpdater.on('error', (error) => {
         console.error('Auto-updater error:', error);
+        if (mainWindow) {
+            mainWindow.webContents.send('update-error', error.message || 'Güncelleme hatası');
+        }
     });
 
     // Check for updates after 3 seconds

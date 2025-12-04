@@ -794,8 +794,48 @@ body {
     padding: 12px 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 16px;
+}
+
+.update-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.update-text {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.update-progress {
+    flex: 1;
+    max-width: 200px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.update-progress-bar {
+    height: 100%;
+    background: white;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.update-percent {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 40px;
+}
+
+.update-actions {
+    display: flex;
+    gap: 8px;
 }
 
 .update-banner span {

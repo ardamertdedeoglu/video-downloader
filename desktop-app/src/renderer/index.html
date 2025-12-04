@@ -30,9 +30,17 @@
 
         <!-- Update Available Banner -->
         <div class="update-banner" id="updateBanner" style="display: none;">
-            <span>🎉 Yeni sürüm mevcut!</span>
-            <button id="updateBtn" class="btn-small">Güncelle</button>
-            <button id="dismissUpdate" class="btn-small btn-ghost">×</button>
+            <div class="update-info">
+                <span class="update-text" id="updateText">🎉 Yeni sürüm mevcut!</span>
+                <div class="update-progress" id="updateProgress" style="display: none;">
+                    <div class="update-progress-bar" id="updateProgressBar"></div>
+                </div>
+                <span class="update-percent" id="updatePercent" style="display: none;">%0</span>
+            </div>
+            <div class="update-actions">
+                <button id="updateBtn" class="btn-small">Güncelle</button>
+                <button id="dismissUpdate" class="btn-small btn-ghost">×</button>
+            </div>
         </div>
 
         <!-- Main Content -->
