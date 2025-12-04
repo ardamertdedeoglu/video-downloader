@@ -84,6 +84,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('update-error', (event, error) => callback(error));
     },
     
+    // ============ Converter API ============
+    
+    // Select input files for conversion
+    selectInputFiles: () => ipcRenderer.invoke('select-input-files'),
+    
+    // Get file info
+    getFileInfo: (filePath) => ipcRenderer.invoke('get-file-info', filePath),
+    
+    // Convert a single file
+    convertFile: (options) => ipcRenderer.invoke('convert-file', options),
+    
+    // Convert multiple files in batch
+    convertBatch: (files, options) => ipcRenderer.invoke('convert-batch', { files, options }),
+    
+    // Cancel current conversion
+    cancelConversion: () => ipcRenderer.invoke('cancel-conversion'),
+    
+    // Open folder containing converted file
+    openConvertedFolder: (filePath) => ipcRenderer.invoke('open-converted-folder', filePath),
+    
+    // Converter event listeners
+    onConversionProgress: (callback) => {
+        ipcRenderer.on('conversion-progress', (event, progress) => callback(progress));
+    },
+    
+    onFileConverted: (callback) => {
+        ipcRenderer.on('file-converted', (event, result) => callback(result));
+    },
+    
+    onBatchComplete: (callback) => {
+        ipcRenderer.on('batch-complete', (event, result) => callback(result));
+    },
+    
     // Remove listeners
     removeAllListeners: (channel) => {
         ipcRenderer.removeAllListeners(channel);

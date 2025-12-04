@@ -1,4 +1,4 @@
-const { ipcMain, dialog, BrowserWindow } = require('electron');
+const { ipcMain, dialog, BrowserWindow, shell } = require('electron');
 const { getVideoInfo, downloadVideo, cancelDownload } = require('./downloader');
 const { checkBinariesStatus, downloadBinaries, checkYtdlpUpdate, updateYtdlp } = require('./binary-manager');
 const { 
@@ -11,7 +11,15 @@ const {
     getCookieFilePath,
     importCookiesFromNetscape
 } = require('./cookie-sync');
+const {
+    getFileInfo,
+    convertFile,
+    convertBatch,
+    cancelConversion,
+    formatFileSize
+} = require('./converter');
 const fs = require('fs');
+const path = require('path');
 
 function setupIpcHandlers(store) {
     // Get video info
@@ -177,6 +185,133 @@ function setupIpcHandlers(store) {
             const importResult = importCookiesFromNetscape(content);
             
             return importResult;
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // ============ Converter Handlers ============
+
+    // Select input files for conversion
+    ipcMain.handle('select-input-files', async (event) => {
+        try {
+            const result = await dialog.showOpenDialog({
+                title: 'Dönüştürülecek Dosyaları Seç',
+                filters: [
+                    { 
+                        name: 'Video/Ses Dosyaları', 
+                        extensions: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'wma', 'wmv', 'flv', '3gp'] 
+                    },
+                    { name: 'Video Dosyaları', extensions: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'wmv', 'flv', '3gp'] },
+                    { name: 'Ses Dosyaları', extensions: ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'wma'] },
+                    { name: 'Tüm Dosyalar', extensions: ['*'] }
+                ],
+                properties: ['openFile', 'multiSelections']
+            });
+
+            if (result.canceled || !result.filePaths.length) {
+                return { success: false, error: 'İptal edildi' };
+            }
+
+            // Get file info for each selected file
+            const filesWithInfo = await Promise.all(
+                result.filePaths.map(async (filePath) => {
+                    try {
+                        const info = await getFileInfo(filePath);
+                        return {
+                            path: filePath,
+                            name: path.basename(filePath),
+                            size: info.size,
+                            sizeFormatted: formatFileSize(info.size),
+                            type: info.type,
+                            duration: info.durationFormatted,
+                            video: info.video,
+                            audio: info.audio
+                        };
+                    } catch (error) {
+                        return {
+                            path: filePath,
+                            name: path.basename(filePath),
+                            size: 0,
+                            sizeFormatted: 'Bilinmiyor',
+                            type: 'unknown',
+                            error: error.message
+                        };
+                    }
+                })
+            );
+
+            return { success: true, files: filesWithInfo };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Get file info for a single file
+    ipcMain.handle('get-file-info', async (event, filePath) => {
+        try {
+            const info = await getFileInfo(filePath);
+            return { 
+                success: true, 
+                data: {
+                    ...info,
+                    sizeFormatted: formatFileSize(info.size)
+                }
+            };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Convert a single file
+    ipcMain.handle('convert-file', async (event, options) => {
+        try {
+            const result = await convertFile(options, (progress) => {
+                event.sender.send('conversion-progress', progress);
+            });
+            return { success: true, data: result };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Convert multiple files in batch
+    ipcMain.handle('convert-batch', async (event, { files, options }) => {
+        try {
+            const result = await convertBatch(
+                files,
+                options,
+                (progress) => {
+                    event.sender.send('conversion-progress', progress);
+                },
+                (fileResult) => {
+                    event.sender.send('file-converted', fileResult);
+                }
+            );
+            
+            event.sender.send('batch-complete', result);
+            return { success: true, data: result };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Cancel current conversion
+    ipcMain.handle('cancel-conversion', () => {
+        cancelConversion();
+        return { success: true };
+    });
+
+    // Open folder containing converted file
+    ipcMain.handle('open-converted-folder', async (event, filePath) => {
+        try {
+            if (filePath && fs.existsSync(filePath)) {
+                shell.showItemInFolder(filePath);
+            } else {
+                const downloadPath = store.get('downloadPath');
+                shell.openPath(downloadPath);
+            }
+            return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
         }

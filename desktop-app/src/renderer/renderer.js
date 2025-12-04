@@ -3,6 +3,14 @@ let currentVideoInfo = null;
 let isDownloading = false;
 let selectedFormat = null; // { formatId, isAudio, quality, ext }
 
+// Converter State
+let currentMode = 'downloader'; // 'downloader' | 'converter'
+let fileQueue = []; // Array of file objects
+let selectedOutputFormat = 'mp4';
+let selectedPreset = 'balanced';
+let isConverting = false;
+let lastConvertedFilePath = null;
+
 // DOM Elements
 const elements = {
     // Modals
@@ -20,10 +28,19 @@ const elements = {
     updateBtn: document.getElementById('updateBtn'),
     dismissUpdate: document.getElementById('dismissUpdate'),
     
-    // URL section
+    // Navigation
+    hamburgerBtn: document.getElementById('hamburgerBtn'),
+    navSidebar: document.getElementById('navSidebar'),
+    navOverlay: document.getElementById('navOverlay'),
+    navCloseBtn: document.getElementById('navCloseBtn'),
+    logoIcon: document.getElementById('logoIcon'),
+    pageTitle: document.getElementById('pageTitle'),
+    
+    // URL section (Downloader)
     urlInput: document.getElementById('urlInput'),
     fetchBtn: document.getElementById('fetchBtn'),
     errorMessage: document.getElementById('errorMessage'),
+    urlSection: document.querySelector('.url-section'),
     
     // Video section
     videoSection: document.getElementById('videoSection'),
@@ -54,6 +71,36 @@ const elements = {
     cancelDownload: document.getElementById('cancelDownload'),
     downloadComplete: document.getElementById('downloadComplete'),
     openFolderBtn: document.getElementById('openFolderBtn'),
+    
+    // Converter section
+    converterSection: document.getElementById('converterSection'),
+    dropZone: document.getElementById('dropZone'),
+    selectFilesBtn: document.getElementById('selectFilesBtn'),
+    queueWarning: document.getElementById('queueWarning'),
+    warningText: document.getElementById('warningText'),
+    fileQueueSection: document.getElementById('fileQueueSection'),
+    fileQueue: document.getElementById('fileQueue'),
+    fileCount: document.getElementById('fileCount'),
+    clearQueueBtn: document.getElementById('clearQueueBtn'),
+    conversionSettings: document.getElementById('conversionSettings'),
+    videoFormatGroup: document.getElementById('videoFormatGroup'),
+    audioFormatGroup: document.getElementById('audioFormatGroup'),
+    startConversionBtn: document.getElementById('startConversionBtn'),
+    conversionProgressSection: document.getElementById('conversionProgressSection'),
+    conversionStatus: document.getElementById('conversionStatus'),
+    conversionPercent: document.getElementById('conversionPercent'),
+    conversionProgressBar: document.getElementById('conversionProgressBar'),
+    currentFileName: document.getElementById('currentFileName'),
+    currentFileProgressBar: document.getElementById('currentFileProgressBar'),
+    cancelConversionBtn: document.getElementById('cancelConversionBtn'),
+    conversionComplete: document.getElementById('conversionComplete'),
+    successCount: document.getElementById('successCount'),
+    failedCount: document.getElementById('failedCount'),
+    failedSummary: document.getElementById('failedSummary'),
+    failedFilesList: document.getElementById('failedFilesList'),
+    failedFilesUl: document.getElementById('failedFilesUl'),
+    openConvertedFolderBtn: document.getElementById('openConvertedFolderBtn'),
+    newConversionBtn: document.getElementById('newConversionBtn'),
     
     // Settings
     settingsBtn: document.getElementById('settingsBtn'),
@@ -279,6 +326,62 @@ function setupEventListeners() {
     elements.dismissUpdate.addEventListener('click', () => {
         elements.updateBanner.style.display = 'none';
     });
+    
+    // Navigation - Hamburger menu
+    elements.hamburgerBtn.addEventListener('click', openNavSidebar);
+    elements.navCloseBtn.addEventListener('click', closeNavSidebar);
+    elements.navOverlay.addEventListener('click', closeNavSidebar);
+    
+    // Navigation items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const mode = item.dataset.mode;
+            switchMode(mode);
+            closeNavSidebar();
+        });
+    });
+    
+    // Converter - Drop zone
+    elements.dropZone.addEventListener('click', selectFiles);
+    elements.dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        elements.dropZone.classList.add('drag-over');
+    });
+    elements.dropZone.addEventListener('dragleave', () => {
+        elements.dropZone.classList.remove('drag-over');
+    });
+    elements.dropZone.addEventListener('drop', handleFileDrop);
+    
+    // Converter buttons
+    elements.selectFilesBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectFiles();
+    });
+    elements.clearQueueBtn.addEventListener('click', clearFileQueue);
+    elements.startConversionBtn.addEventListener('click', startConversion);
+    elements.cancelConversionBtn.addEventListener('click', cancelConversionProcess);
+    elements.openConvertedFolderBtn.addEventListener('click', openConvertedFolder);
+    elements.newConversionBtn.addEventListener('click', resetConverter);
+    
+    // Format options
+    document.querySelectorAll('.format-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const format = btn.dataset.format;
+            const group = btn.closest('.format-group');
+            group.querySelectorAll('.format-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedOutputFormat = format;
+        });
+    });
+    
+    // Preset options
+    document.querySelectorAll('.preset-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.preset-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedPreset = btn.dataset.preset;
+        });
+    });
 }
 
 // IPC Listeners
@@ -373,6 +476,37 @@ function setupIpcListeners() {
             elements.updateBtn.disabled = true;
             await window.electronAPI.downloadUpdate();
         };
+    });
+    
+    // Converter events
+    window.electronAPI.onConversionProgress((progress) => {
+        if (progress.overallProgress !== undefined) {
+            // Batch progress
+            elements.conversionProgressBar.style.width = `${progress.overallProgress}%`;
+            elements.conversionPercent.textContent = `%${progress.overallProgress}`;
+            elements.conversionStatus.textContent = `Dosya ${progress.fileIndex}/${progress.totalFiles} işleniyor...`;
+            elements.currentFileName.textContent = progress.fileName;
+            elements.currentFileProgressBar.style.width = `${progress.fileProgress}%`;
+        } else {
+            // Single file progress
+            elements.conversionProgressBar.style.width = `${progress.percent}%`;
+            elements.conversionPercent.textContent = `%${progress.percent}`;
+        }
+    });
+    
+    window.electronAPI.onFileConverted((result) => {
+        // Update file queue item status
+        const fileItem = document.querySelector(`[data-path="${CSS.escape(result.file)}"]`);
+        if (fileItem) {
+            const statusIcon = fileItem.querySelector('.file-status-icon');
+            if (statusIcon) {
+                statusIcon.textContent = result.success ? '✅' : '❌';
+            }
+        }
+    });
+    
+    window.electronAPI.onBatchComplete((result) => {
+        showConversionComplete(result);
     });
 }
 
@@ -823,6 +957,349 @@ function formatFileSize(bytes) {
     
     return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
+
+// ============================================
+// NAVIGATION FUNCTIONS
+// ============================================
+
+function openNavSidebar() {
+    elements.navSidebar.classList.add('show');
+    elements.navOverlay.classList.add('show');
+    elements.hamburgerBtn.classList.add('active');
+}
+
+function closeNavSidebar() {
+    elements.navSidebar.classList.remove('show');
+    elements.navOverlay.classList.remove('show');
+    elements.hamburgerBtn.classList.remove('active');
+}
+
+function switchMode(mode) {
+    if (mode === currentMode) return;
+    
+    currentMode = mode;
+    
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.mode === mode);
+    });
+    
+    // Update header
+    if (mode === 'downloader') {
+        elements.logoIcon.textContent = '📥';
+        elements.pageTitle.textContent = 'Video Downloader';
+        elements.pageTitle.classList.remove('converter-title');
+    } else {
+        elements.logoIcon.textContent = '🔄';
+        elements.pageTitle.textContent = 'Dönüştürücü';
+        elements.pageTitle.classList.add('converter-title');
+    }
+    
+    // Show/hide sections
+    const downloaderElements = [elements.urlSection, elements.videoSection, elements.errorMessage];
+    const converterElements = [elements.converterSection];
+    
+    if (mode === 'downloader') {
+        elements.urlSection.style.display = 'block';
+        elements.converterSection.style.display = 'none';
+        // Keep video section state as-is
+    } else {
+        elements.urlSection.style.display = 'none';
+        elements.videoSection.style.display = 'none';
+        elements.errorMessage.style.display = 'none';
+        elements.converterSection.style.display = 'block';
+    }
+}
+
+// ============================================
+// CONVERTER FUNCTIONS
+// ============================================
+
+async function selectFiles() {
+    const result = await window.electronAPI.selectInputFiles();
+    
+    if (result.success && result.files.length > 0) {
+        addFilesToQueue(result.files);
+    }
+}
+
+function handleFileDrop(e) {
+    e.preventDefault();
+    elements.dropZone.classList.remove('drag-over');
+    
+    const files = Array.from(e.dataTransfer.files);
+    const validExtensions = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'wma', 'wmv', 'flv', '3gp'];
+    
+    const validFiles = files.filter(file => {
+        const ext = file.name.split('.').pop().toLowerCase();
+        return validExtensions.includes(ext);
+    });
+    
+    if (validFiles.length > 0) {
+        // Get file info for dropped files
+        Promise.all(validFiles.map(async file => {
+            try {
+                const result = await window.electronAPI.getFileInfo(file.path);
+                if (result.success) {
+                    return {
+                        path: file.path,
+                        name: file.name,
+                        size: result.data.size,
+                        sizeFormatted: result.data.sizeFormatted,
+                        type: result.data.type,
+                        duration: result.data.durationFormatted
+                    };
+                }
+            } catch (error) {
+                console.error('Error getting file info:', error);
+            }
+            return {
+                path: file.path,
+                name: file.name,
+                size: file.size,
+                sizeFormatted: formatFileSize(file.size),
+                type: 'unknown'
+            };
+        })).then(filesWithInfo => {
+            addFilesToQueue(filesWithInfo);
+        });
+    }
+}
+
+function addFilesToQueue(newFiles) {
+    // Avoid duplicates
+    newFiles.forEach(file => {
+        if (!fileQueue.find(f => f.path === file.path)) {
+            fileQueue.push(file);
+        }
+    });
+    
+    updateFileQueueUI();
+    updateFormatOptions();
+}
+
+function removeFromQueue(filePath) {
+    fileQueue = fileQueue.filter(f => f.path !== filePath);
+    updateFileQueueUI();
+    updateFormatOptions();
+}
+
+function clearFileQueue() {
+    fileQueue = [];
+    updateFileQueueUI();
+    updateFormatOptions();
+}
+
+function updateFileQueueUI() {
+    const hasFiles = fileQueue.length > 0;
+    
+    // Toggle has-files class for layout reordering
+    elements.converterSection.classList.toggle('has-files', hasFiles);
+    
+    elements.fileQueueSection.style.display = hasFiles ? 'block' : 'none';
+    elements.conversionSettings.style.display = hasFiles ? 'block' : 'none';
+    elements.fileCount.textContent = fileQueue.length;
+    
+    // Show warning for 20+ files
+    if (fileQueue.length > 20) {
+        elements.queueWarning.style.display = 'flex';
+        elements.warningText.textContent = `${fileQueue.length} dosya seçildi. Bu işlem uzun sürebilir.`;
+    } else {
+        elements.queueWarning.style.display = 'none';
+    }
+    
+    // Render file list using data-index for reliable removal
+    elements.fileQueue.innerHTML = fileQueue.map((file, index) => `
+        <div class="file-queue-item" data-path="${file.path}" data-index="${index}">
+            <div class="file-info">
+                <span class="file-type-icon">${file.type === 'video' ? '🎬' : file.type === 'audio' ? '🎵' : '📄'}</span>
+                <div class="file-details">
+                    <span class="file-name" title="${file.name}">${file.name}</span>
+                    <span class="file-meta">${file.sizeFormatted}${file.duration ? ' • ' + file.duration : ''}</span>
+                </div>
+            </div>
+            <div class="file-status">
+                <span class="file-status-icon">⏳</span>
+                <button class="file-remove-btn" data-remove-index="${index}" title="Kaldır">×</button>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add click handlers for remove buttons
+    elements.fileQueue.querySelectorAll('.file-remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = parseInt(btn.dataset.removeIndex, 10);
+            if (!isNaN(index) && index >= 0 && index < fileQueue.length) {
+                removeFromQueueByIndex(index);
+            }
+        });
+    });
+}
+
+function removeFromQueueByIndex(index) {
+    fileQueue.splice(index, 1);
+    updateFileQueueUI();
+    updateFormatOptions();
+}
+
+function updateFormatOptions() {
+    // Determine dominant file type
+    const videoCount = fileQueue.filter(f => f.type === 'video').length;
+    const audioCount = fileQueue.filter(f => f.type === 'audio').length;
+    
+    // Video formats we support
+    const videoFormats = ['mp4', 'mkv', 'webm', 'avi', 'mov'];
+    const audioFormats = ['mp3', 'aac', 'wav', 'flac', 'ogg'];
+    
+    if (videoCount > 0 && audioCount === 0) {
+        // All video files
+        elements.videoFormatGroup.style.display = 'flex';
+        elements.audioFormatGroup.style.display = 'none';
+        
+        // Get the extension of the first video file to set as default
+        const firstVideoFile = fileQueue.find(f => f.type === 'video');
+        if (firstVideoFile) {
+            const ext = firstVideoFile.name.split('.').pop().toLowerCase();
+            // If the extension is a supported video format, select it
+            selectedOutputFormat = videoFormats.includes(ext) ? ext : 'mp4';
+        } else {
+            selectedOutputFormat = 'mp4';
+        }
+    } else if (audioCount > 0 && videoCount === 0) {
+        // All audio files
+        elements.videoFormatGroup.style.display = 'none';
+        elements.audioFormatGroup.style.display = 'flex';
+        
+        // Get the extension of the first audio file to set as default
+        const firstAudioFile = fileQueue.find(f => f.type === 'audio');
+        if (firstAudioFile) {
+            const ext = firstAudioFile.name.split('.').pop().toLowerCase();
+            // If the extension is a supported audio format, select it
+            selectedOutputFormat = audioFormats.includes(ext) ? ext : 'mp3';
+        } else {
+            selectedOutputFormat = 'mp3';
+        }
+    } else {
+        // Mixed or unknown - show video formats by default
+        elements.videoFormatGroup.style.display = 'flex';
+        elements.audioFormatGroup.style.display = 'none';
+        
+        // Try to detect format from first file
+        const firstFile = fileQueue[0];
+        if (firstFile) {
+            const ext = firstFile.name.split('.').pop().toLowerCase();
+            if (videoFormats.includes(ext)) {
+                selectedOutputFormat = ext;
+            } else {
+                selectedOutputFormat = 'mp4';
+            }
+        } else {
+            selectedOutputFormat = 'mp4';
+        }
+    }
+    
+    // Reset format selection
+    document.querySelectorAll('.format-option').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.format === selectedOutputFormat);
+    });
+}
+
+async function startConversion() {
+    if (fileQueue.length === 0) return;
+    
+    isConverting = true;
+    
+    // Hide settings, show progress
+    elements.conversionSettings.style.display = 'none';
+    elements.fileQueueSection.style.display = 'none';
+    elements.dropZone.style.display = 'none';
+    elements.queueWarning.style.display = 'none';
+    elements.conversionProgressSection.style.display = 'block';
+    elements.conversionComplete.style.display = 'none';
+    
+    // Reset progress
+    elements.conversionProgressBar.style.width = '0%';
+    elements.conversionPercent.textContent = '%0';
+    elements.currentFileProgressBar.style.width = '0%';
+    elements.conversionStatus.textContent = 'Başlatılıyor...';
+    elements.currentFileName.textContent = fileQueue[0]?.name || '';
+    
+    const filePaths = fileQueue.map(f => f.path);
+    
+    try {
+        const result = await window.electronAPI.convertBatch(filePaths, {
+            outputFormat: selectedOutputFormat,
+            preset: selectedPreset
+        });
+        
+        if (result.success) {
+            // Save last converted file path for folder opening
+            if (result.data.success.length > 0) {
+                lastConvertedFilePath = result.data.success[0].outputPath;
+            }
+        }
+    } catch (error) {
+        console.error('Conversion error:', error);
+        showError('Dönüştürme sırasında bir hata oluştu');
+    }
+    
+    isConverting = false;
+}
+
+function showConversionComplete(result) {
+    elements.conversionProgressSection.style.display = 'none';
+    elements.conversionComplete.style.display = 'block';
+    
+    elements.successCount.textContent = result.success.length;
+    
+    if (result.failed.length > 0) {
+        elements.failedSummary.style.display = 'flex';
+        elements.failedCount.textContent = result.failed.length;
+        elements.failedFilesList.style.display = 'block';
+        elements.failedFilesUl.innerHTML = result.failed.map(f => 
+            `<li>• ${f.fileName} - ${f.error}</li>`
+        ).join('');
+    } else {
+        elements.failedSummary.style.display = 'none';
+        elements.failedFilesList.style.display = 'none';
+    }
+}
+
+async function cancelConversionProcess() {
+    await window.electronAPI.cancelConversion();
+    isConverting = false;
+    resetConverter();
+}
+
+function openConvertedFolder() {
+    window.electronAPI.openConvertedFolder(lastConvertedFilePath);
+}
+
+function resetConverter() {
+    fileQueue = [];
+    lastConvertedFilePath = null;
+    selectedOutputFormat = 'mp4';
+    selectedPreset = 'balanced';
+    
+    // Reset UI
+    elements.dropZone.style.display = 'block';
+    elements.fileQueueSection.style.display = 'none';
+    elements.conversionSettings.style.display = 'none';
+    elements.conversionProgressSection.style.display = 'none';
+    elements.conversionComplete.style.display = 'none';
+    elements.queueWarning.style.display = 'none';
+    
+    // Reset preset selection
+    document.querySelectorAll('.preset-option').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.preset === 'balanced');
+    });
+    
+    updateFormatOptions();
+}
+
+// Make removeFromQueue global for inline onclick
+window.removeFromQueue = removeFromQueue;
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', init);
