@@ -708,7 +708,7 @@
           </div>
           
           <div class="download-buttons-app">
-            <a href="https://github.com/ardamertdedeoglu/video-downloader/releases/latest/download/Video.Downloader.Setup.1.0.0.exe" class="btn-download-app">
+            <a href="#" id="downloadAppBtn" class="btn-download-app" onclick="downloadLatestRelease(event)">
               <span class="icon">⊞</span>
               <span class="btn-content">
                 <span class="btn-label">İndir</span>
@@ -717,7 +717,7 @@
             </a>
           </div>
           
-          <p class="app-version">v1.0.0 • Windows 10/11</p>
+          <p class="app-version" id="appVersionText">Yükleniyor...</p>
           
           <div class="app-benefits">
             <div class="benefit-item">
@@ -938,10 +938,62 @@
       let pairingTimerInterval = null;
       let cookieSyncPollInterval = null;
       let extensionId = null;
+      let latestReleaseInfo = null;
+
+      // GitHub repo info
+      const GITHUB_OWNER = 'ardamertdedeoglu';
+      const GITHUB_REPO = 'video-downloader';
 
       // YouTube URL validation regex (XSS önleme için)
       const YOUTUBE_URL_REGEX =
         /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=[\w-]+|youtu\.be\/[\w-]+|youtube\.com\/shorts\/[\w-]+)/;
+
+      // ============ GitHub Release Handling ============
+      async function fetchLatestRelease() {
+        try {
+          const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`);
+          if (!response.ok) throw new Error('Release not found');
+          
+          const release = await response.json();
+          latestReleaseInfo = release;
+          
+          // Find Windows setup file (.exe)
+          const windowsAsset = release.assets.find(asset => 
+            asset.name.toLowerCase().includes('setup') && asset.name.endsWith('.exe')
+          );
+          
+          if (windowsAsset) {
+            const downloadBtn = document.getElementById('downloadAppBtn');
+            const versionText = document.getElementById('appVersionText');
+            
+            // Update download link
+            downloadBtn.href = windowsAsset.browser_download_url;
+            downloadBtn.onclick = null; // Remove onclick handler
+            
+            // Update version text
+            const fileSize = (windowsAsset.size / (1024 * 1024)).toFixed(1);
+            const releaseDate = new Date(release.published_at).toLocaleDateString('tr-TR');
+            versionText.textContent = `${release.tag_name} • Windows 10/11 • ${fileSize} MB • ${releaseDate}`;
+          }
+        } catch (error) {
+          console.error('Failed to fetch latest release:', error);
+          // Fallback to static link
+          const versionText = document.getElementById('appVersionText');
+          versionText.textContent = 'v1.0.0 • Windows 10/11';
+        }
+      }
+
+      // Download latest release
+      function downloadLatestRelease(event) {
+        if (latestReleaseInfo) {
+          // If we have release info, the href is already set correctly
+          return true;
+        }
+        
+        // Fallback - redirect to releases page
+        event.preventDefault();
+        window.open(`https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`, '_blank');
+      }
 
       // ============ URL Parameter Handling ============
       function handleUrlParameters() {
@@ -1594,6 +1646,9 @@
 
       // Sayfa yüklendiğinde cookie durumunu kontrol et
       checkCookieStatus();
+
+      // GitHub'dan en son sürümü al
+      fetchLatestRelease();
 
       // URL parametrelerini işle
       handleUrlParameters();
