@@ -2,6 +2,9 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+    // App info
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    
     // Video operations
     getVideoInfo: (url) => ipcRenderer.invoke('get-video-info', url),
     downloadVideo: (options) => ipcRenderer.invoke('download-video', options),

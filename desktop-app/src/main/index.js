@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
+const packageJson = require('../../package.json');
 
 // Modules
 const { setupIpcHandlers } = require('./ipc-handlers');
@@ -35,28 +36,38 @@ function createWindow() {
         frame: process.platform === 'darwin' ? false : true,
         backgroundColor: '#1a1a2e',
         icon: path.join(__dirname, '../../build/icon.png'),
-        show: false
+        show: false,
+        autoHideMenuBar: true
     });
+
+    // Remove menu bar completely on Windows/Linux
+    if (process.platform !== 'darwin') {
+        mainWindow.setMenu(null);
+    }
 
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-    // Show window when ready
-    mainWindow.once('ready-to-show', async () => {
+    // Show window when DOM is ready (earlier than did-finish-load)
+    mainWindow.webContents.once('dom-ready', () => {
+        // Show window immediately - splash screen CSS is already loaded
         mainWindow.show();
         
-        // Initialize file watchers for cookie and binary status
-        initializeWatchers(mainWindow);
-        
-        // Always check and auto-download binaries if needed (no user interaction required)
-        const status = await checkBinariesStatus();
-        if (!status.ready) {
-            // Automatically start downloading binaries
-            mainWindow.webContents.send('binaries-download-start');
-            checkAndDownloadBinaries(mainWindow, store);
-        } else {
-            store.set('binariesDownloaded', true);
-            mainWindow.webContents.send('binaries-ready');
-        }
+        // Start background tasks after a small delay to ensure UI is rendered
+        setTimeout(async () => {
+            // Initialize file watchers for cookie and binary status
+            initializeWatchers(mainWindow);
+            
+            // Always check and auto-download binaries if needed (no user interaction required)
+            const status = await checkBinariesStatus();
+            if (!status.ready) {
+                // Automatically start downloading binaries
+                mainWindow.webContents.send('binaries-download-start');
+                checkAndDownloadBinaries(mainWindow, store);
+            } else {
+                store.set('binariesDownloaded', true);
+                mainWindow.webContents.send('binaries-ready');
+            }
+        }, 100);
     });
 
     // Open external links in browser
@@ -106,6 +117,11 @@ function setupAutoUpdater() {
         autoUpdater.checkForUpdates().catch(console.error);
     }, 3000);
 }
+
+// IPC for app info
+ipcMain.handle('get-app-version', () => {
+    return app.getVersion() || packageJson.version;
+});
 
 // IPC for updates
 ipcMain.handle('download-update', async () => {

@@ -58,15 +58,13 @@ const elements = {
     // Settings
     settingsBtn: document.getElementById('settingsBtn'),
     settingsPanel: document.getElementById('settingsPanel'),
+    settingsOverlay: document.getElementById('settingsOverlay'),
     closeSettings: document.getElementById('closeSettings'),
     browserList: document.getElementById('browserList'),
-    browserSettingGroup: document.getElementById('browserSettingGroup'),
     downloadPath: document.getElementById('downloadPath'),
     selectPathBtn: document.getElementById('selectPathBtn'),
     binaryStatusList: document.getElementById('binaryStatusList'),
     updateBinariesBtn: document.getElementById('updateBinariesBtn'),
-    useCookiesToggle: document.getElementById('useCookiesToggle'),
-    cookieStatusText: document.getElementById('cookieStatusText'),
     // Cookie sync elements
     cookieSyncStatus: document.getElementById('cookieSyncStatus'),
     cookieSyncText: document.getElementById('cookieSyncText'),
@@ -76,7 +74,11 @@ const elements = {
     deleteCookieBtn: document.getElementById('deleteCookieBtn'),
     // yt-dlp update
     updateYtdlpBtn: document.getElementById('updateYtdlpBtn'),
-    ytdlpUpdateInfo: document.getElementById('ytdlpUpdateInfo')
+    ytdlpUpdateInfo: document.getElementById('ytdlpUpdateInfo'),
+    // App info
+    appVersion: document.getElementById('appVersion'),
+    // Splash screen
+    splashScreen: document.getElementById('splashScreen')
 };
 
 // Initialize
@@ -84,10 +86,40 @@ async function init() {
     setupEventListeners();
     setupIpcListeners();
     await loadSettings();
+    await loadAppVersion();
     await checkBinaries();
     await checkYtdlpUpdate();
     await checkCookieStatus();
     await checkAndShowLoginStatus();
+    
+    // Hide splash screen after everything is loaded
+    hideSplashScreen();
+}
+
+// Hide splash screen with animation
+function hideSplashScreen() {
+    if (elements.splashScreen) {
+        elements.splashScreen.classList.add('hidden');
+        // Remove from DOM after animation
+        setTimeout(() => {
+            elements.splashScreen.remove();
+        }, 400);
+    }
+}
+
+// Load app version
+async function loadAppVersion() {
+    try {
+        const version = await window.electronAPI.getAppVersion();
+        if (version) {
+            elements.appVersion.textContent = `Sürüm: ${version}`;
+        } else {
+            elements.appVersion.textContent = 'Sürüm: Bilinmiyor';
+        }
+    } catch (error) {
+        console.error('Failed to load app version:', error);
+        elements.appVersion.textContent = 'Sürüm: Hata';
+    }
 }
 
 // Event Listeners
@@ -139,13 +171,9 @@ function setupEventListeners() {
     });
     
     // Settings
-    elements.settingsBtn.addEventListener('click', () => {
-        elements.settingsPanel.style.display = 'block';
-    });
-    
-    elements.closeSettings.addEventListener('click', () => {
-        elements.settingsPanel.style.display = 'none';
-    });
+    elements.settingsBtn.addEventListener('click', openSettings);
+    elements.closeSettings.addEventListener('click', closeSettings);
+    elements.settingsOverlay.addEventListener('click', closeSettings);
     
     elements.selectPathBtn.addEventListener('click', async () => {
         const newPath = await window.electronAPI.selectDownloadPath();
@@ -345,7 +373,6 @@ function setupIpcListeners() {
             elements.updateBtn.disabled = true;
             await window.electronAPI.downloadUpdate();
         };
-        console.error('Update error:', error);
     });
 }
 
@@ -353,12 +380,6 @@ function setupIpcListeners() {
 async function loadSettings() {
     const settings = await window.electronAPI.getSettings();
     elements.downloadPath.value = settings.downloadPath;
-    
-    // Load cookie settings
-    const useCookies = settings.useCookies !== false; // default true
-    elements.useCookiesToggle.checked = useCookies;
-    elements.cookieStatusText.textContent = useCookies ? 'Çerezler aktif' : 'Çerezler devre dışı';
-    elements.browserSettingGroup.classList.toggle('disabled', !useCookies);
 }
 
 // Check binaries
@@ -490,6 +511,27 @@ function showSuccess(message) {
         elements.errorMessage.querySelector('.error-icon').textContent = '⚠️';
         elements.errorMessage.querySelector('.error-text').style.color = '';
     }, 3000);
+}
+
+// Open settings panel
+function openSettings() {
+    elements.settingsPanel.style.display = 'block';
+    elements.settingsOverlay.style.display = 'block';
+    // Trigger reflow to enable transition
+    elements.settingsPanel.offsetHeight;
+    elements.settingsPanel.classList.add('show');
+    elements.settingsOverlay.classList.add('show');
+}
+
+// Close settings panel
+function closeSettings() {
+    elements.settingsPanel.classList.remove('show');
+    elements.settingsOverlay.classList.remove('show');
+    // Wait for animation to finish before hiding
+    setTimeout(() => {
+        elements.settingsPanel.style.display = 'none';
+        elements.settingsOverlay.style.display = 'none';
+    }, 300);
 }
 
 // Validate URL
@@ -690,7 +732,7 @@ async function downloadVideo(formatId, audioOnly = false) {
     elements.downloadProgress.style.display = 'block';
     elements.downloadComplete.style.display = 'none';
     elements.downloadProgressBar.style.width = '0%';
-    elements.downloadPercent.textContent = '%0';
+    elements.doSwnloadPercent.textContent = '%0';
     elements.downloadStatus.textContent = 'Başlatılıyor...';
     
     try {

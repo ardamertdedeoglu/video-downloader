@@ -8,6 +8,23 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-content">
+            <div class="splash-icon">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <polygon points="10,8 16,12 10,16" fill="currentColor"/>
+                </svg>
+            </div>
+            <h1 class="splash-title">Video Downloader</h1>
+            <div class="splash-loader">
+                <div class="splash-loader-bar"></div>
+            </div>
+            <p class="splash-text">Yükleniyor...</p>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Titlebar for macOS -->
         <div class="titlebar" id="titlebar">
@@ -150,6 +167,9 @@
             </section>
         </main>
 
+        <!-- Settings Overlay -->
+        <div class="settings-overlay" id="settingsOverlay" style="display: none;"></div>
+
         <!-- Settings Panel -->
         <div class="settings-panel" id="settingsPanel" style="display: none;">
             <div class="settings-header">
@@ -207,7 +227,7 @@
                 <!-- App Info -->
                 <div class="setting-group">
                     <label>Uygulama Bilgisi</label>
-                    <p class="app-version">Sürüm: 1.0.0</p>
+                    <p class="app-version" id="appVersion">Sürüm: ...</p>
                     <p class="app-author">Yapımcı: Arda Mert Dedeoglu</p>
                 </div>
             </div>
