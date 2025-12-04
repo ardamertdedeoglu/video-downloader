@@ -56,6 +56,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('binaries-download-start', () => callback());
     },
     
+    // Status change events (from file watchers)
+    onCookieStatusChanged: (callback) => {
+        ipcRenderer.on('cookie-status-changed', (event, status) => callback(status));
+    },
+    
+    onBinariesStatusChanged: (callback) => {
+        ipcRenderer.on('binaries-status-changed', () => callback());
+    },
+
     onUpdateAvailable: (callback) => {
         ipcRenderer.on('update-available', (event, info) => callback(info));
     },

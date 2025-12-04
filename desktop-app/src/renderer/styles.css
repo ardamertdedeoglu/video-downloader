@@ -401,6 +401,63 @@ body {
     margin-top: 16px;
 }
 
+/* Selected Format */
+.format-item.selected {
+    border-color: var(--accent);
+    background: rgba(233, 69, 96, 0.15);
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.3);
+}
+
+.format-item.selected .format-quality::before {
+    content: '✓ ';
+    color: var(--accent);
+}
+
+/* Download Action */
+.download-action {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.selected-format-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.selected-format-info .format-label {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.btn-download {
+    font-size: 16px;
+    padding: 16px 24px;
+}
+
+/* Disabled Format Section */
+.format-section.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.format-section.disabled .format-item {
+    cursor: not-allowed;
+}
+
+.format-section.disabled .btn-primary {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Progress */
 .download-progress, .download-complete {
     background: var(--card-bg);

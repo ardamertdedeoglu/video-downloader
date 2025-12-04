@@ -1,6 +1,7 @@
 // State
 let currentVideoInfo = null;
 let isDownloading = false;
+let selectedFormat = null; // { formatId, isAudio, quality, ext }
 
 // DOM Elements
 const elements = {
@@ -34,6 +35,12 @@ const elements = {
     videoFormats: document.getElementById('videoFormats'),
     audioFormats: document.getElementById('audioFormats'),
     downloadMp3Btn: document.getElementById('downloadMp3Btn'),
+    
+    // Format section
+    formatSection: document.getElementById('formatSection'),
+    downloadAction: document.getElementById('downloadAction'),
+    selectedFormatInfo: document.getElementById('selectedFormatInfo'),
+    startDownloadBtn: document.getElementById('startDownloadBtn'),
     
     // Progress
     downloadProgress: document.getElementById('downloadProgress'),
@@ -113,8 +120,11 @@ function setupEventListeners() {
         });
     });
     
-    // Download MP3
-    elements.downloadMp3Btn.addEventListener('click', () => downloadVideo(null, true));
+    // Download MP3 - select format instead of immediate download
+    elements.downloadMp3Btn.addEventListener('click', () => selectFormat(null, true, 'MP3', 'mp3'));
+    
+    // Start download button
+    elements.startDownloadBtn.addEventListener('click', startSelectedDownload);
     
     // Cancel download
     elements.cancelDownload.addEventListener('click', cancelDownload);
@@ -246,6 +256,8 @@ function setupIpcListeners() {
     window.electronAPI.onBinariesDownloadStart(() => {
         elements.binaryModal.classList.add('show');
         elements.binaryStatus.textContent = 'Gerekli bileşenler indiriliyor...';
+        elements.binaryProgress.style.width = '0%';
+        elements.binaryProgressText.textContent = 'Başlatılıyor...';
     });
     
     window.electronAPI.onBinariesProgress((progress) => {
@@ -262,6 +274,17 @@ function setupIpcListeners() {
     window.electronAPI.onBinariesError((error) => {
         elements.binaryStatus.textContent = `Hata: ${error}`;
         elements.binaryProgressText.textContent = 'Lütfen internet bağlantınızı kontrol edin';
+    });
+    
+    // Status change events (from file watchers)
+    window.electronAPI.onCookieStatusChanged((status) => {
+        console.log('Cookie status changed (from watcher):', status);
+        updateCookieUI(status);
+    });
+    
+    window.electronAPI.onBinariesStatusChanged(() => {
+        console.log('Binaries status changed (from watcher)');
+        checkBinaries();
     });
     
     // Download progress
@@ -369,13 +392,19 @@ async function checkYtdlpUpdate() {
 // Check cookie status
 async function checkCookieStatus() {
     const status = await window.electronAPI.getCookieStatus();
-    
-    // Cookie dosyası varsa = giriş yapılmış demek
-    if (status.hasCookies && status.cookieCount > 0) {
+    console.log('Cookie status:', status);
+    updateCookieUI(status);
+}
+
+// Update cookie UI based on status (called by checkCookieStatus and file watcher)
+function updateCookieUI(status) {
+    // Cookie dosyası varsa ve geçerli login cookie'leri varsa = giriş yapılmış
+    if (status.hasCookies && status.hasLoginCookies && status.cookieCount > 0) {
         elements.cookieSyncStatus.classList.add('synced');
         elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '✅';
         elements.cookieSyncText.textContent = `YouTube hesabı bağlı (${status.cookieCount} çerez)`;
         
+        // Giriş yapılmış - giriş butonunu gizle, diğerlerini göster
         elements.youtubeLoginBtn.style.display = 'none';
         elements.refreshCookiesBtn.style.display = 'inline-block';
         elements.deleteCookieBtn.style.display = 'inline-block';
@@ -383,6 +412,8 @@ async function checkCookieStatus() {
         elements.cookieSyncStatus.classList.remove('synced');
         elements.cookieSyncStatus.querySelector('.cookie-icon').textContent = '🔒';
         elements.cookieSyncText.textContent = 'Giriş yapılmadı';
+        
+        // Giriş yapılmamış - giriş butonunu göster, diğerlerini gizle
         elements.youtubeLoginBtn.style.display = 'inline-block';
         elements.refreshCookiesBtn.style.display = 'none';
         elements.deleteCookieBtn.style.display = 'none';
@@ -513,6 +544,10 @@ function displayVideoInfo(info) {
         });
     }
     
+    // Reset format selection
+    selectedFormat = null;
+    elements.downloadAction.style.display = 'none';
+    
     elements.videoSection.style.display = 'block';
 }
 
@@ -520,6 +555,7 @@ function displayVideoInfo(info) {
 function createFormatItem(format, isAudio) {
     const div = document.createElement('div');
     div.className = 'format-item';
+    div.dataset.formatId = format.formatId;
     
     if (isAudio) {
         div.innerHTML = `
@@ -539,9 +575,62 @@ function createFormatItem(format, isAudio) {
         `;
     }
     
-    div.addEventListener('click', () => downloadVideo(format.formatId, isAudio));
+    div.addEventListener('click', () => selectFormat(format.formatId, isAudio, format.quality, format.ext));
     
     return div;
+}
+
+// Select format (without starting download)
+function selectFormat(formatId, isAudio, quality, ext) {
+    if (isDownloading) return;
+    
+    // Clear previous selection
+    document.querySelectorAll('.format-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Select new format
+    if (formatId) {
+        const formatItem = document.querySelector(`.format-item[data-format-id="${formatId}"]`);
+        if (formatItem) {
+            formatItem.classList.add('selected');
+        }
+    }
+    
+    // Store selected format
+    selectedFormat = { formatId, isAudio, quality, ext };
+    
+    // Show download action
+    elements.downloadAction.style.display = 'block';
+    
+    // Update selected format info
+    if (isAudio && !formatId) {
+        elements.selectedFormatInfo.innerHTML = `
+            <span>🎵</span>
+            <span class="format-label">MP3 (En İyi Kalite)</span>
+        `;
+    } else if (isAudio) {
+        elements.selectedFormatInfo.innerHTML = `
+            <span>🎵</span>
+            <span class="format-label">${quality || 'Ses'}</span>
+            <span>•</span>
+            <span>${ext ? ext.toUpperCase() : 'Ses Dosyası'}</span>
+        `;
+    } else {
+        elements.selectedFormatInfo.innerHTML = `
+            <span>🎬</span>
+            <span class="format-label">${quality || 'Video'}</span>
+            <span>•</span>
+            <span>MP4 (Sesli)</span>
+        `;
+    }
+}
+
+// Start download with selected format
+async function startSelectedDownload() {
+    if (!selectedFormat || isDownloading) return;
+    
+    await downloadVideo(selectedFormat.formatId, selectedFormat.isAudio);
 }
 
 // Download video
@@ -550,6 +639,12 @@ async function downloadVideo(formatId, audioOnly = false) {
     
     isDownloading = true;
     hideError();
+    
+    // Disable format section during download
+    elements.formatSection.classList.add('disabled');
+    elements.startDownloadBtn.disabled = true;
+    elements.startDownloadBtn.innerHTML = '⏳ İndiriliyor...';
+    
     elements.downloadProgress.style.display = 'block';
     elements.downloadComplete.style.display = 'none';
     elements.downloadProgressBar.style.width = '0%';
@@ -590,6 +685,10 @@ async function downloadVideo(formatId, audioOnly = false) {
         elements.downloadProgress.style.display = 'none';
     } finally {
         isDownloading = false;
+        // Re-enable format section
+        elements.formatSection.classList.remove('disabled');
+        elements.startDownloadBtn.disabled = false;
+        elements.startDownloadBtn.innerHTML = '⬇️ İndir';
     }
 }
 
@@ -598,6 +697,10 @@ async function cancelDownload() {
     await window.electronAPI.cancelDownload();
     elements.downloadProgress.style.display = 'none';
     isDownloading = false;
+    // Re-enable format section
+    elements.formatSection.classList.remove('disabled');
+    elements.startDownloadBtn.disabled = false;
+    elements.startDownloadBtn.innerHTML = '⬇️ İndir';
 }
 
 // Format helpers

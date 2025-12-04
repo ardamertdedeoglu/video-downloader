@@ -131,9 +131,17 @@ function setupIpcHandlers(store) {
         const cookiePath = getCookieFilePath();
         console.log('Cookie file path:', cookiePath);
         console.log('Cookie info:', cookieInfo);
+        
+        // Cookie dosyası varsa ve içinde geçerli login cookie'leri varsa
+        const isLoggedIn = cookieInfo !== null && 
+                           cookieInfo.exists && 
+                           cookieInfo.hasLoginCookies && 
+                           cookieInfo.cookieCount > 0;
+        
         return {
-            hasCookies: cookieInfo !== null && cookieInfo.exists,
+            hasCookies: isLoggedIn,
             cookieCount: cookieInfo?.cookieCount || 0,
+            hasLoginCookies: cookieInfo?.hasLoginCookies || false,
             lastModified: cookieInfo?.lastModified || null
         };
     });

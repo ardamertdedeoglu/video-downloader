@@ -228,7 +228,7 @@ async function clearAuthSession() {
     }
 }
 
-// Load cookies from file
+// Load cookies from file and validate
 function loadCookiesFromFile() {
     if (!fs.existsSync(COOKIE_FILE)) {
         return null;
@@ -240,13 +240,42 @@ function loadCookiesFromFile() {
             line && !line.startsWith('#') && line.includes('\t')
         );
         
+        if (lines.length === 0) {
+            return null;
+        }
+        
+        // Check if file contains YouTube cookies
+        const hasYouTubeCookies = lines.some(line => 
+            line.includes('.youtube.com') || line.includes('.google.com')
+        );
+        
+        if (!hasYouTubeCookies) {
+            return null;
+        }
+        
+        // Check for important login cookies (SID, SSID, LOGIN_INFO)
+        const hasLoginCookies = lines.some(line => {
+            const parts = line.split('\t');
+            if (parts.length >= 6) {
+                const cookieName = parts[5];
+                return cookieName === 'SID' || 
+                       cookieName === 'SSID' || 
+                       cookieName === 'LOGIN_INFO' ||
+                       cookieName === '__Secure-1PSID' ||
+                       cookieName === '__Secure-3PSID';
+            }
+            return false;
+        });
+        
         return {
             exists: true,
             cookieCount: lines.length,
+            hasLoginCookies: hasLoginCookies,
             filePath: COOKIE_FILE,
             lastModified: fs.statSync(COOKIE_FILE).mtime
         };
     } catch (error) {
+        console.error('Error reading cookie file:', error);
         return null;
     }
 }

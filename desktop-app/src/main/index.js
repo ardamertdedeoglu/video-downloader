@@ -5,7 +5,8 @@ const { autoUpdater } = require('electron-updater');
 
 // Modules
 const { setupIpcHandlers } = require('./ipc-handlers');
-const { checkAndDownloadBinaries } = require('./binary-manager');
+const { checkAndDownloadBinaries, checkBinariesStatus } = require('./binary-manager');
+const { initializeWatchers, stopWatchers } = require('./status-watcher');
 
 // Store for settings
 const store = new Store({
@@ -40,13 +41,21 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
     // Show window when ready
-    mainWindow.once('ready-to-show', () => {
+    mainWindow.once('ready-to-show', async () => {
         mainWindow.show();
         
-        // Check for binaries on first run
-        if (!store.get('binariesDownloaded')) {
-            mainWindow.webContents.send('binaries-check-start');
+        // Initialize file watchers for cookie and binary status
+        initializeWatchers(mainWindow);
+        
+        // Always check and auto-download binaries if needed (no user interaction required)
+        const status = await checkBinariesStatus();
+        if (!status.ready) {
+            // Automatically start downloading binaries
+            mainWindow.webContents.send('binaries-download-start');
             checkAndDownloadBinaries(mainWindow, store);
+        } else {
+            store.set('binariesDownloaded', true);
+            mainWindow.webContents.send('binaries-ready');
         }
     });
 
@@ -149,6 +158,9 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    // Stop all watchers
+    stopWatchers();
+    
     if (process.platform !== 'darwin') {
         app.quit();
     }
