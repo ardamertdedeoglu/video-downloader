@@ -37,13 +37,13 @@ function createWindow() {
         backgroundColor: '#1a1a2e',
         icon: path.join(__dirname, '../../build/icon.png'),
         show: false,
-        autoHideMenuBar: true
+        autoHideMenuBar: false
     });
 
     // Remove menu bar completely on Windows/Linux
-    if (process.platform !== 'darwin') {
-        mainWindow.setMenu(null);
-    }
+    //if (process.platform !== 'darwin') {
+    //    mainWindow.setMenu(null);
+    //}
 
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 

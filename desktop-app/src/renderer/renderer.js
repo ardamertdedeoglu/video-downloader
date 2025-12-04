@@ -866,7 +866,7 @@ async function downloadVideo(formatId, audioOnly = false) {
     elements.downloadProgress.style.display = 'block';
     elements.downloadComplete.style.display = 'none';
     elements.downloadProgressBar.style.width = '0%';
-    elements.doSwnloadPercent.textContent = '%0';
+    elements.downloadPercent.textContent = '%0';
     elements.downloadStatus.textContent = 'Başlatılıyor...';
     
     try {
