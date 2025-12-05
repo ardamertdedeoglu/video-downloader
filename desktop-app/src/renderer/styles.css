@@ -18,6 +18,7 @@
   --error: #ef4444;
   --border: #2a2a4a;
   --card-bg: rgba(255, 255, 255, 0.05);
+  --nav-item-active: #10101c;
   /* Converter accent colors */
   --converter-accent: #6366f1;
   --converter-accent-hover: #818cf8;
@@ -39,6 +40,7 @@
     --error: #dc2626;
     --border: #c0c0a8;
     --card-bg: rgba(0, 0, 0, 0.05);
+    --nav-item-active: #334e1f;
     /* Converter accent colors for light theme */
     --converter-accent: #7d9645;
     --converter-accent-hover: #6b8239;
@@ -60,6 +62,7 @@
   --error: #dc2626;
   --border: #c0c0a8;
   --card-bg: rgba(0, 0, 0, 0.05);
+  --nav-item-active: #334e1f;
   /* Converter accent colors for light theme */
   --converter-accent: #7d9645;
   --converter-accent-hover: #6b8239;
@@ -80,6 +83,7 @@
   --error: #ef4444;
   --border: #2a2a4a;
   --card-bg: rgba(255, 255, 255, 0.05);
+  --nav-item-active: #10101c;
   /* Converter accent colors */
   --converter-accent: #6366f1;
   --converter-accent-hover: #818cf8;
@@ -391,7 +395,10 @@ body {
 }
 
 .logo-icon {
-  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  object-fit: fill;
+  color: var(--accent);
 }
 
 .logo h1 {
@@ -420,9 +427,17 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 14px;
-  font-size: 20px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .settings-btn:hover {
@@ -1245,7 +1260,7 @@ body {
   left: 0;
   width: 280px;
   height: 100vh;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-right: 1px solid var(--border);
   z-index: 99;
   transform: translateX(-100%);
@@ -1313,12 +1328,8 @@ body {
 }
 
 .nav-item.active {
-  background: var(--accent);
+  background: var(--nav-item-active);
   color: white;
-}
-
-.nav-item.active[data-mode="converter"] {
-  background: var(--converter-accent);
 }
 
 .nav-icon {
@@ -1348,6 +1359,12 @@ body {
   animation: fadeIn 0.3s ease;
   display: flex;
   flex-direction: column;
+}
+
+#convertIconSidebar{
+  width: 48px;
+  height: 48px;
+  object-fit: fill;
 }
 
 /* When files are added, reorder layout */

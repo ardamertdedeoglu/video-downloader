@@ -36,8 +36,11 @@ const elements = {
   navSidebar: document.getElementById("navSidebar"),
   navOverlay: document.getElementById("navOverlay"),
   navCloseBtn: document.getElementById("navCloseBtn"),
+  logoIconSidebar: document.getElementById("logoIconSidebar"),
   logoIcon: document.getElementById("logoIcon"),
+  convertIconSidebar: document.getElementById("convertIconSidebar"),
   pageTitle: document.getElementById("pageTitle"),
+  navFooterVersion: document.getElementById("navFooterVersion"),
 
   // URL section (Downloader)
   urlInput: document.getElementById("urlInput"),
@@ -77,6 +80,7 @@ const elements = {
 
   // Converter section
   converterSection: document.getElementById("converterSection"),
+  convertIcon: document.getElementById("convertIcon"),
   dropZone: document.getElementById("dropZone"),
   selectFilesBtn: document.getElementById("selectFilesBtn"),
   queueWarning: document.getElementById("queueWarning"),
@@ -109,6 +113,7 @@ const elements = {
 
   // Settings
   settingsBtn: document.getElementById("settingsBtn"),
+  settingsIcon: document.getElementById("settingsIcon"),
   settingsPanel: document.getElementById("settingsPanel"),
   settingsOverlay: document.getElementById("settingsOverlay"),
   closeSettings: document.getElementById("closeSettings"),
@@ -168,41 +173,75 @@ function hideSplashScreen() {
 // Apply theme based on preference
 async function applyTheme(themePref) {
   currentTheme = themePref;
-  
+
   // Remove existing theme classes
-  document.documentElement.classList.remove('light-theme', 'dark-theme');
-  
-  if (themePref === 'system') {
+  document.documentElement.classList.remove("light-theme", "dark-theme");
+
+  let isDark = true; // Default to dark
+
+  if (themePref === "system") {
     // Get system theme from main process
     const systemTheme = await window.electronAPI.getSystemTheme();
+    isDark = systemTheme === "dark";
+    document.documentElement.classList.add(isDark ? "dark-theme" : "light-theme");
     // Don't add any class - let CSS media query handle it
-  } else if (themePref === 'light') {
-    document.documentElement.classList.add('light-theme');
-  } else if (themePref === 'dark') {
-    document.documentElement.classList.add('dark-theme');
+  } else if (themePref === "light") {
+    document.documentElement.classList.add("light-theme");
+    isDark = false;
+  } else if (themePref === "dark") {
+    document.documentElement.classList.add("dark-theme");
+    isDark = true;
   }
-  
+
+  // Update theme icons
+  updateThemeIcons(isDark);
+
   // Update theme selector UI
   updateThemeSelectorUI(themePref);
+}
+
+// Update icons based on current theme
+function updateThemeIcons(isDark) {
+  const suffix = isDark ? "dark" : "light";
+
+  if (elements.logoIcon) {
+    //Check if in downloader or converter mode
+    if (currentMode === "downloader") {
+      elements.logoIcon.src = `./assets/icons/logo_${suffix}.png`;
+      elements.logoIconSidebar.src = `./assets/icons/logo_${suffix}.png`;
+      elements.convertIconSidebar.src = `./assets/icons/convert_${suffix}.png`;
+    } else if (currentMode === "converter") {
+      elements.logoIcon.src = `./assets/icons/convert_${suffix}.png`;
+      elements.logoIconSidebar.src = `./assets/icons/logo_${suffix}.png`;
+      elements.convertIconSidebar.src = `./assets/icons/convert_${suffix}.png`;
+    }
+  }
+  if (elements.settingsIcon) {
+    elements.settingsIcon.src = `./assets/icons/settings_${suffix}.png`;
+  }
 }
 
 // Update theme selector buttons
 function updateThemeSelectorUI(activeTheme) {
   if (!elements.themeSelector) return;
-  
-  const buttons = elements.themeSelector.querySelectorAll('.theme-option');
-  buttons.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.theme === activeTheme);
+
+  const buttons = elements.themeSelector.querySelectorAll(".theme-option");
+  buttons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === activeTheme);
   });
 }
 
 // Handle theme change from system
 function handleSystemThemeChange(systemTheme) {
   // Only react if user preference is 'system'
-  if (currentTheme === 'system') {
+  if (currentTheme === "system") {
     // CSS media query will handle it automatically
     // Just ensure no manual theme class is set
-    document.documentElement.classList.remove('light-theme', 'dark-theme');
+    document.documentElement.classList.remove("light-theme", "dark-theme");
+
+    // Update icons based on new system theme
+    const isDark = systemTheme === "dark";
+    updateThemeIcons(isDark);
   }
 }
 
@@ -212,6 +251,7 @@ async function loadAppVersion() {
     const version = await window.electronAPI.getAppVersion();
     if (version) {
       elements.appVersion.textContent = `Sürüm: ${version}`;
+      elements.navFooterVersion.textContent = `Video Downloader v${version}`;
     } else {
       elements.appVersion.textContent = "Sürüm: Bilinmiyor";
     }
@@ -289,11 +329,11 @@ function setupEventListeners() {
 
   // Theme selector
   if (elements.themeSelector) {
-    elements.themeSelector.querySelectorAll('.theme-option').forEach(btn => {
-      btn.addEventListener('click', async () => {
+    elements.themeSelector.querySelectorAll(".theme-option").forEach((btn) => {
+      btn.addEventListener("click", async () => {
         const theme = btn.dataset.theme;
         await applyTheme(theme);
-        await window.electronAPI.setSetting('theme', theme);
+        await window.electronAPI.setSetting("theme", theme);
       });
     });
   }
@@ -617,7 +657,7 @@ function setupIpcListeners() {
 async function loadSettings() {
   const settings = await window.electronAPI.getSettings();
   elements.downloadPath.value = settings.downloadPath;
-  
+
   // Apply theme
   if (settings.theme) {
     currentTheme = settings.theme;
@@ -1118,13 +1158,19 @@ function switchMode(mode) {
     item.classList.toggle("active", item.dataset.mode === mode);
   });
 
+  let isDark = document.documentElement.classList.contains("dark-theme");
+
   // Update header
   if (mode === "downloader") {
-    elements.logoIcon.textContent = "📥";
+    elements.logoIcon.src = `./assets/icons/logo_${
+      isDark ? "dark" : "light"
+    }.png`;
     elements.pageTitle.textContent = "Video Downloader";
     elements.pageTitle.classList.remove("converter-title");
   } else {
-    elements.logoIcon.textContent = "🔄";
+    elements.logoIcon.src = `./assets/icons/convert_${
+      isDark ? "dark" : "light"
+    }.png`;
     elements.pageTitle.textContent = "Dönüştürücü";
     elements.pageTitle.classList.add("converter-title");
   }
