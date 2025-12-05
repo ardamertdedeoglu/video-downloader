@@ -1,417 +1,580 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:;"
+    />
     <title>Video Downloader</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <!-- Splash Screen -->
     <div class="splash-screen" id="splashScreen">
-        <div class="splash-content">
-            <div class="splash-icon">
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <polygon points="10,8 16,12 10,16" fill="currentColor"/>
-                </svg>
-            </div>
-            <h1 class="splash-title">Video Downloader</h1>
-            <div class="splash-loader">
-                <div class="splash-loader-bar"></div>
-            </div>
-            <p class="splash-text">Yükleniyor...</p>
+      <div class="splash-content">
+        <div class="splash-icon">
+          <svg
+            width="80"
+            height="80"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <polygon points="10,8 16,12 10,16" fill="currentColor" />
+          </svg>
         </div>
+        <h1 class="splash-title">Video Downloader</h1>
+        <div class="splash-loader">
+          <div class="splash-loader-bar"></div>
+        </div>
+        <p class="splash-text">Yükleniyor...</p>
+      </div>
     </div>
 
     <div class="app-container">
-        <!-- Titlebar for macOS -->
-        <div class="titlebar" id="titlebar">
-            <div class="titlebar-drag-region"></div>
-            <span class="app-title">Video Downloader</span>
+      <!-- Titlebar for macOS -->
+      <div class="titlebar" id="titlebar">
+        <div class="titlebar-drag-region"></div>
+        <span class="app-title">Video Downloader</span>
+      </div>
+
+      <!-- Binary Download Modal -->
+      <div class="modal" id="binaryModal">
+        <div class="modal-content">
+          <div class="modal-icon">⬇️</div>
+          <h2>İlk Kurulum</h2>
+          <p id="binaryStatus">Gerekli bileşenler indiriliyor...</p>
+          <div class="progress-container">
+            <div class="progress-bar" id="binaryProgress"></div>
+          </div>
+          <p class="progress-text" id="binaryProgressText">Hazırlanıyor...</p>
+        </div>
+      </div>
+
+      <!-- Update Available Banner -->
+      <div class="update-banner" id="updateBanner" style="display: none">
+        <div class="update-info">
+          <span class="update-text" id="updateText">🎉 Yeni sürüm mevcut!</span>
+          <div
+            class="update-progress"
+            id="updateProgress"
+            style="display: none"
+          >
+            <div class="update-progress-bar" id="updateProgressBar"></div>
+          </div>
+          <span class="update-percent" id="updatePercent" style="display: none"
+            >%0</span
+          >
+        </div>
+        <div class="update-actions">
+          <button id="updateBtn" class="btn-small">Güncelle</button>
+          <button id="dismissUpdate" class="btn-small btn-ghost">×</button>
+        </div>
+      </div>
+
+      <!-- Navigation Sidebar -->
+      <div class="nav-overlay" id="navOverlay"></div>
+      <nav class="nav-sidebar" id="navSidebar">
+        <div class="nav-header">
+          <h3>Menü</h3>
+          <button class="nav-close-btn" id="navCloseBtn">×</button>
+        </div>
+        <ul class="nav-menu">
+          <li class="nav-item active" data-mode="downloader">
+            <span class="nav-icon">📥</span>
+            <span class="nav-text">Video İndirici</span>
+          </li>
+          <li class="nav-item" data-mode="converter">
+            <span class="nav-icon">🔄</span>
+            <span class="nav-text">Dönüştürücü</span>
+          </li>
+        </ul>
+        <div class="nav-footer">
+          <p>Video Downloader v1.0</p>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Header -->
+        <header class="header">
+          <div class="header-left">
+            <button class="hamburger-btn" id="hamburgerBtn" title="Menü">
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+            </button>
+            <div class="logo">
+              <span class="logo-icon" id="logoIcon">📥</span>
+              <h1 id="pageTitle">Video Downloader</h1>
+            </div>
+          </div>
+          <button class="settings-btn" id="settingsBtn" title="Ayarlar">
+            ⚙️
+          </button>
+        </header>
+
+        <!-- URL Input Section -->
+        <section class="url-section">
+          <div class="input-group">
+            <input
+              type="text"
+              id="urlInput"
+              placeholder="YouTube, Twitter, Instagram veya diğer video URL'sini yapıştırın"
+              autocomplete="off"
+            />
+            <button id="fetchBtn" class="btn-primary">
+              <span class="btn-text">Getir</span>
+              <span class="btn-loader" style="display: none">⏳</span>
+            </button>
+          </div>
+          <p class="supported-sites">
+            YouTube, Twitter/X, Instagram, TikTok, Facebook ve 1000+ site
+            desteklenir
+          </p>
+        </section>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage" style="display: none">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text"></span>
         </div>
 
-        <!-- Binary Download Modal -->
-        <div class="modal" id="binaryModal">
-            <div class="modal-content">
-                <div class="modal-icon">⬇️</div>
-                <h2>İlk Kurulum</h2>
-                <p id="binaryStatus">Gerekli bileşenler indiriliyor...</p>
-                <div class="progress-container">
-                    <div class="progress-bar" id="binaryProgress"></div>
-                </div>
-                <p class="progress-text" id="binaryProgressText">Hazırlanıyor...</p>
+        <!-- Video Info Section -->
+        <section class="video-section" id="videoSection" style="display: none">
+          <div class="video-card">
+            <div class="video-thumbnail">
+              <img id="videoThumbnail" src="" alt="Video thumbnail" />
+              <span class="video-duration" id="videoDuration"></span>
             </div>
-        </div>
+            <div class="video-info">
+              <h2 id="videoTitle"></h2>
+              <p class="video-meta">
+                <span id="videoUploader"></span>
+                <span class="separator">•</span>
+                <span id="videoViews"></span>
+              </p>
+            </div>
+          </div>
 
-        <!-- Update Available Banner -->
-        <div class="update-banner" id="updateBanner" style="display: none;">
-            <div class="update-info">
-                <span class="update-text" id="updateText">🎉 Yeni sürüm mevcut!</span>
-                <div class="update-progress" id="updateProgress" style="display: none;">
-                    <div class="update-progress-bar" id="updateProgressBar"></div>
-                </div>
-                <span class="update-percent" id="updatePercent" style="display: none;">%0</span>
-            </div>
-            <div class="update-actions">
-                <button id="updateBtn" class="btn-small">Güncelle</button>
-                <button id="dismissUpdate" class="btn-small btn-ghost">×</button>
-            </div>
-        </div>
+          <!-- Format Selection -->
+          <div class="format-section" id="formatSection">
+            <h3>Format Seçin</h3>
 
-        <!-- Navigation Sidebar -->
-        <div class="nav-overlay" id="navOverlay"></div>
-        <nav class="nav-sidebar" id="navSidebar">
-            <div class="nav-header">
-                <h3>Menü</h3>
-                <button class="nav-close-btn" id="navCloseBtn">×</button>
+            <div class="format-tabs">
+              <button class="format-tab active" data-tab="video">
+                🎬 Video
+              </button>
+              <button class="format-tab" data-tab="audio">🎵 Sadece Ses</button>
             </div>
-            <ul class="nav-menu">
-                <li class="nav-item active" data-mode="downloader">
-                    <span class="nav-icon">📥</span>
-                    <span class="nav-text">Video İndirici</span>
-                </li>
-                <li class="nav-item" data-mode="converter">
-                    <span class="nav-icon">🔄</span>
-                    <span class="nav-text">Dönüştürücü</span>
-                </li>
-            </ul>
-            <div class="nav-footer">
-                <p>Video Downloader v1.0</p>
-            </div>
-        </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="header">
-                <div class="header-left">
-                    <button class="hamburger-btn" id="hamburgerBtn" title="Menü">
-                        <span class="hamburger-line"></span>
-                        <span class="hamburger-line"></span>
-                        <span class="hamburger-line"></span>
-                    </button>
-                    <div class="logo">
-                        <span class="logo-icon" id="logoIcon">📥</span>
-                        <h1 id="pageTitle">Video Downloader</h1>
-                    </div>
-                </div>
-                <button class="settings-btn" id="settingsBtn" title="Ayarlar">
-                    ⚙️
+            <div class="format-content" id="videoFormats">
+              <div class="format-list" id="videoFormatList"></div>
+            </div>
+
+            <div class="format-content" id="audioFormats" style="display: none">
+              <div class="format-list" id="audioFormatList"></div>
+              <div class="audio-option">
+                <button id="downloadMp3Btn" class="btn-primary btn-full">
+                  🎵 MP3 Olarak İndir (En İyi Kalite)
                 </button>
-            </header>
+              </div>
+            </div>
 
-            <!-- URL Input Section -->
-            <section class="url-section">
-                <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="urlInput" 
-                        placeholder="YouTube, Twitter, Instagram veya diğer video URL'sini yapıştırın"
-                        autocomplete="off"
-                    >
-                    <button id="fetchBtn" class="btn-primary">
-                        <span class="btn-text">Getir</span>
-                        <span class="btn-loader" style="display: none;">⏳</span>
+            <!-- Download Button -->
+            <div
+              class="download-action"
+              id="downloadAction"
+              style="display: none"
+            >
+              <div class="selected-format-info" id="selectedFormatInfo"></div>
+              <button
+                id="startDownloadBtn"
+                class="btn-primary btn-full btn-download"
+              >
+                ⬇️ İndir
+              </button>
+            </div>
+          </div>
+
+          <!-- Download Progress -->
+          <div
+            class="download-progress"
+            id="downloadProgress"
+            style="display: none"
+          >
+            <div class="progress-header">
+              <span id="downloadStatus">İndiriliyor...</span>
+              <button id="cancelDownload" class="btn-ghost">İptal</button>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar" id="downloadProgressBar"></div>
+            </div>
+            <p class="progress-percent" id="downloadPercent">0%</p>
+          </div>
+
+          <!-- Download Complete -->
+          <div
+            class="download-complete"
+            id="downloadComplete"
+            style="display: none"
+          >
+            <span class="complete-icon">✅</span>
+            <span class="complete-text">İndirme tamamlandı!</span>
+            <button id="openFolderBtn" class="btn-small">📂 Klasörü Aç</button>
+          </div>
+        </section>
+
+        <!-- ========== CONVERTER SECTION ========== -->
+        <section
+          class="converter-section"
+          id="converterSection"
+          style="display: none"
+        >
+          <!-- Drop Zone -->
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-content">
+              <span class="drop-zone-icon">📁</span>
+              <h3>Dosyaları Sürükleyip Bırakın</h3>
+              <p>veya</p>
+              <button class="btn-primary" id="selectFilesBtn">
+                📂 Dosya Seç
+              </button>
+              <p class="drop-zone-hint">
+                Video: MP4, MKV, AVI, MOV, WebM • Ses: MP3, WAV, FLAC, AAC, OGG
+              </p>
+            </div>
+          </div>
+
+          <!-- File Queue Warning (20+ files) -->
+          <div class="queue-warning" id="queueWarning" style="display: none">
+            <span class="warning-icon">⚠️</span>
+            <span class="warning-text" id="warningText"
+              >25 dosya seçildi. Bu işlem uzun sürebilir.</span
+            >
+          </div>
+
+          <!-- File Queue -->
+          <div
+            class="file-queue-section"
+            id="fileQueueSection"
+            style="display: none"
+          >
+            <div class="queue-header">
+              <h3>📋 Dosya Kuyruğu (<span id="fileCount">0</span>)</h3>
+              <button class="btn-ghost btn-small" id="clearQueueBtn">
+                🗑️ Temizle
+              </button>
+            </div>
+            <div class="file-queue" id="fileQueue"></div>
+          </div>
+
+          <!-- Conversion Settings -->
+          <div
+            class="conversion-settings"
+            id="conversionSettings"
+            style="display: none"
+          >
+            <h3>⚙️ Dönüştürme Ayarları</h3>
+
+            <!-- Output Format -->
+            <div class="setting-row">
+              <label>Çıktı Formatı</label>
+              <div class="format-grid" id="outputFormatGrid">
+                <!-- Video Formats -->
+                <div class="format-group" id="videoFormatGroup">
+                  <span class="format-group-label">Video:</span>
+                  <div class="format-options">
+                    <button class="format-option selected" data-format="mp4">
+                      MP4
                     </button>
-                </div>
-                <p class="supported-sites">
-                    YouTube, Twitter/X, Instagram, TikTok, Facebook ve 1000+ site desteklenir
-                </p>
-            </section>
-
-            <!-- Error Message -->
-            <div class="error-message" id="errorMessage" style="display: none;">
-                <span class="error-icon">⚠️</span>
-                <span class="error-text"></span>
-            </div>
-
-            <!-- Video Info Section -->
-            <section class="video-section" id="videoSection" style="display: none;">
-                <div class="video-card">
-                    <div class="video-thumbnail">
-                        <img id="videoThumbnail" src="" alt="Video thumbnail">
-                        <span class="video-duration" id="videoDuration"></span>
-                    </div>
-                    <div class="video-info">
-                        <h2 id="videoTitle"></h2>
-                        <p class="video-meta">
-                            <span id="videoUploader"></span>
-                            <span class="separator">•</span>
-                            <span id="videoViews"></span>
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Format Selection -->
-                <div class="format-section" id="formatSection">
-                    <h3>Format Seçin</h3>
-                    
-                    <div class="format-tabs">
-                        <button class="format-tab active" data-tab="video">🎬 Video</button>
-                        <button class="format-tab" data-tab="audio">🎵 Sadece Ses</button>
-                    </div>
-
-                    <div class="format-content" id="videoFormats">
-                        <div class="format-list" id="videoFormatList"></div>
-                    </div>
-
-                    <div class="format-content" id="audioFormats" style="display: none;">
-                        <div class="format-list" id="audioFormatList"></div>
-                        <div class="audio-option">
-                            <button id="downloadMp3Btn" class="btn-primary btn-full">
-                                🎵 MP3 Olarak İndir (En İyi Kalite)
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Download Button -->
-                    <div class="download-action" id="downloadAction" style="display: none;">
-                        <div class="selected-format-info" id="selectedFormatInfo"></div>
-                        <button id="startDownloadBtn" class="btn-primary btn-full btn-download">
-                            ⬇️ İndir
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Download Progress -->
-                <div class="download-progress" id="downloadProgress" style="display: none;">
-                    <div class="progress-header">
-                        <span id="downloadStatus">İndiriliyor...</span>
-                        <button id="cancelDownload" class="btn-ghost">İptal</button>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar" id="downloadProgressBar"></div>
-                    </div>
-                    <p class="progress-percent" id="downloadPercent">0%</p>
-                </div>
-
-                <!-- Download Complete -->
-                <div class="download-complete" id="downloadComplete" style="display: none;">
-                    <span class="complete-icon">✅</span>
-                    <span class="complete-text">İndirme tamamlandı!</span>
-                    <button id="openFolderBtn" class="btn-small">📂 Klasörü Aç</button>
-                </div>
-            </section>
-
-            <!-- ========== CONVERTER SECTION ========== -->
-            <section class="converter-section" id="converterSection" style="display: none;">
-                <!-- Drop Zone -->
-                <div class="drop-zone" id="dropZone">
-                    <div class="drop-zone-content">
-                        <span class="drop-zone-icon">📁</span>
-                        <h3>Dosyaları Sürükleyip Bırakın</h3>
-                        <p>veya</p>
-                        <button class="btn-primary" id="selectFilesBtn">
-                            📂 Dosya Seç
-                        </button>
-                        <p class="drop-zone-hint">Video: MP4, MKV, AVI, MOV, WebM • Ses: MP3, WAV, FLAC, AAC, OGG</p>
-                    </div>
-                </div>
-
-                <!-- File Queue Warning (20+ files) -->
-                <div class="queue-warning" id="queueWarning" style="display: none;">
-                    <span class="warning-icon">⚠️</span>
-                    <span class="warning-text" id="warningText">25 dosya seçildi. Bu işlem uzun sürebilir.</span>
-                </div>
-
-                <!-- File Queue -->
-                <div class="file-queue-section" id="fileQueueSection" style="display: none;">
-                    <div class="queue-header">
-                        <h3>📋 Dosya Kuyruğu (<span id="fileCount">0</span>)</h3>
-                        <button class="btn-ghost btn-small" id="clearQueueBtn">🗑️ Temizle</button>
-                    </div>
-                    <div class="file-queue" id="fileQueue"></div>
-                </div>
-
-                <!-- Conversion Settings -->
-                <div class="conversion-settings" id="conversionSettings" style="display: none;">
-                    <h3>⚙️ Dönüştürme Ayarları</h3>
-                    
-                    <!-- Output Format -->
-                    <div class="setting-row">
-                        <label>Çıktı Formatı</label>
-                        <div class="format-grid" id="outputFormatGrid">
-                            <!-- Video Formats -->
-                            <div class="format-group" id="videoFormatGroup">
-                                <span class="format-group-label">Video:</span>
-                                <div class="format-options">
-                                    <button class="format-option selected" data-format="mp4">MP4</button>
-                                    <button class="format-option" data-format="mkv">MKV</button>
-                                    <button class="format-option" data-format="webm">WebM</button>
-                                    <button class="format-option" data-format="avi">AVI</button>
-                                    <button class="format-option" data-format="mov">MOV</button>
-                                </div>
-                            </div>
-                            <!-- Audio Formats -->
-                            <div class="format-group" id="audioFormatGroup" style="display: none;">
-                                <span class="format-group-label">Ses:</span>
-                                <div class="format-options">
-                                    <button class="format-option selected" data-format="mp3">MP3</button>
-                                    <button class="format-option" data-format="aac">AAC</button>
-                                    <button class="format-option" data-format="wav">WAV</button>
-                                    <button class="format-option" data-format="flac">FLAC</button>
-                                    <button class="format-option" data-format="ogg">OGG</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quality Preset -->
-                    <div class="setting-row">
-                        <label>Kalite Ayarı</label>
-                        <div class="preset-options">
-                            <button class="preset-option" data-preset="fast">
-                                <span class="preset-icon">⚡</span>
-                                <span class="preset-name">Hızlı</span>
-                                <span class="preset-desc">Düşük kalite, çok hızlı</span>
-                            </button>
-                            <button class="preset-option selected" data-preset="balanced">
-                                <span class="preset-icon">⚖️</span>
-                                <span class="preset-name">Dengeli</span>
-                                <span class="preset-desc">Orta kalite, orta hız</span>
-                            </button>
-                            <button class="preset-option" data-preset="quality">
-                                <span class="preset-icon">💎</span>
-                                <span class="preset-name">Yüksek Kalite</span>
-                                <span class="preset-desc">En iyi kalite, yavaş</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Start Conversion Button -->
-                    <button class="btn-primary btn-full btn-convert" id="startConversionBtn">
-                        🔄 Dönüştürmeyi Başlat
+                    <button class="format-option" data-format="mkv">MKV</button>
+                    <button class="format-option" data-format="webm">
+                      WebM
                     </button>
+                    <button class="format-option" data-format="avi">AVI</button>
+                    <button class="format-option" data-format="mov">MOV</button>
+                  </div>
                 </div>
-
-                <!-- Conversion Progress -->
-                <div class="conversion-progress-section" id="conversionProgressSection" style="display: none;">
-                    <div class="progress-header">
-                        <h3>🔄 Dönüştürülüyor...</h3>
-                        <button class="btn-ghost" id="cancelConversionBtn">İptal</button>
-                    </div>
-                    
-                    <!-- Overall Progress -->
-                    <div class="overall-progress">
-                        <div class="progress-info">
-                            <span id="conversionStatus">Dosya 1/5 işleniyor...</span>
-                            <span id="conversionPercent">0%</span>
-                        </div>
-                        <div class="progress-container">
-                            <div class="progress-bar converter-progress" id="conversionProgressBar"></div>
-                        </div>
-                    </div>
-
-                    <!-- Current File -->
-                    <div class="current-file-progress">
-                        <span class="current-file-name" id="currentFileName">video.mp4</span>
-                        <div class="progress-container small">
-                            <div class="progress-bar converter-progress" id="currentFileProgressBar"></div>
-                        </div>
-                    </div>
+                <!-- Audio Formats -->
+                <div
+                  class="format-group"
+                  id="audioFormatGroup"
+                  style="display: none"
+                >
+                  <span class="format-group-label">Ses:</span>
+                  <div class="format-options">
+                    <button class="format-option selected" data-format="mp3">
+                      MP3
+                    </button>
+                    <button class="format-option" data-format="aac">AAC</button>
+                    <button class="format-option" data-format="wav">WAV</button>
+                    <button class="format-option" data-format="flac">
+                      FLAC
+                    </button>
+                    <button class="format-option" data-format="ogg">OGG</button>
+                  </div>
                 </div>
-
-                <!-- Conversion Complete -->
-                <div class="conversion-complete" id="conversionComplete" style="display: none;">
-                    <div class="complete-header">
-                        <span class="complete-icon-large">✅</span>
-                        <h3>Dönüştürme Tamamlandı</h3>
-                    </div>
-                    
-                    <div class="complete-summary">
-                        <div class="summary-item success">
-                            <span class="summary-icon">✓</span>
-                            <span class="summary-text">Başarılı: <strong id="successCount">0</strong> dosya</span>
-                        </div>
-                        <div class="summary-item error" id="failedSummary" style="display: none;">
-                            <span class="summary-icon">✗</span>
-                            <span class="summary-text">Başarısız: <strong id="failedCount">0</strong> dosya</span>
-                        </div>
-                    </div>
-
-                    <!-- Failed Files List -->
-                    <div class="failed-files-list" id="failedFilesList" style="display: none;">
-                        <h4>Başarısız Dosyalar:</h4>
-                        <ul id="failedFilesUl"></ul>
-                    </div>
-
-                    <div class="complete-actions">
-                        <button class="btn-primary" id="openConvertedFolderBtn">📂 Klasörü Aç</button>
-                        <button class="btn-ghost" id="newConversionBtn">🔄 Yeni Dönüşüm</button>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Settings Overlay -->
-        <div class="settings-overlay" id="settingsOverlay" style="display: none;"></div>
-
-        <!-- Settings Panel -->
-        <div class="settings-panel" id="settingsPanel" style="display: none;">
-            <div class="settings-header">
-                <h2>⚙️ Ayarlar</h2>
-                <button id="closeSettings" class="btn-ghost">×</button>
+              </div>
             </div>
-            
-            <div class="settings-content">
-                <!-- Website Cookie Sync -->
-                <div class="setting-group">
-                    <label>🍪 +18 Video Desteği</label>
-                    <p class="setting-desc">Yaş kısıtlamalı videolar için YouTube hesabınıza giriş yapın</p>
-                    
-                    <div class="cookie-sync-status" id="cookieSyncStatus">
-                        <span class="cookie-icon">🔒</span>
-                        <span id="cookieSyncText">Giriş yapılmadı</span>
-                    </div>
-                    
-                    <div class="cookie-sync-actions">
-                        <button id="youtubeLoginBtn" class="btn-primary">🔐 YouTube'a Giriş Yap</button>
-                        <button id="refreshCookiesBtn" class="btn-small" style="display: none;">🔄 Çerezleri Yenile</button>
-                        <button id="importCookieBtn" class="btn-small btn-ghost">📁 Dosyadan Yükle</button>
-                        <button id="deleteCookieBtn" class="btn-small btn-ghost" style="display: none;">🗑️ Çıkış Yap</button>
-                    </div>
-                    
-                    <p class="setting-hint" style="margin-top: 8px;">
-                        💡 Giriş yaptıktan sonra +18 videolar otomatik olarak indirilebilir
-                    </p>
-                </div>
 
-                <!-- Download Path -->
-                <div class="setting-group">
-                    <label>İndirme Klasörü</label>
-                    <div class="path-selector">
-                        <input type="text" id="downloadPath" readonly>
-                        <button id="selectPathBtn" class="btn-small">Değiştir</button>
-                    </div>
-                </div>
-
-                <!-- Binary Status -->
-                <div class="setting-group">
-                    <label>Bileşen Durumu</label>
-                    <div class="binary-status" id="binaryStatusList"></div>
-                    <div class="binary-actions" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button id="updateYtdlpBtn" class="btn-small btn-primary" style="display: none;">
-                            ⬆️ yt-dlp Güncelle
-                        </button>
-                        <button id="updateBinariesBtn" class="btn-small">
-                            🔄 Tümünü Yeniden İndir
-                        </button>
-                    </div>
-                    <p class="ytdlp-update-info" id="ytdlpUpdateInfo" style="display: none; margin-top: 8px; font-size: 12px; color: #ffa500;"></p>
-                </div>
-
-                <!-- App Info -->
-                <div class="setting-group">
-                    <label>Uygulama Bilgisi</label>
-                    <p class="app-version" id="appVersion">Sürüm: ...</p>
-                    <p class="app-author">Yapımcı: Arda Mert Dedeoglu</p>
-                </div>
+            <!-- Quality Preset -->
+            <div class="setting-row">
+              <label>Kalite Ayarı</label>
+              <div class="preset-options">
+                <button class="preset-option" data-preset="fast">
+                  <span class="preset-icon">⚡</span>
+                  <span class="preset-name">Hızlı</span>
+                  <span class="preset-desc">Düşük kalite, çok hızlı</span>
+                </button>
+                <button class="preset-option selected" data-preset="balanced">
+                  <span class="preset-icon">⚖️</span>
+                  <span class="preset-name">Dengeli</span>
+                  <span class="preset-desc">Orta kalite, orta hız</span>
+                </button>
+                <button class="preset-option" data-preset="quality">
+                  <span class="preset-icon">💎</span>
+                  <span class="preset-name">Yüksek Kalite</span>
+                  <span class="preset-desc">En iyi kalite, yavaş</span>
+                </button>
+              </div>
             </div>
+
+            <!-- Start Conversion Button -->
+            <button
+              class="btn-primary btn-full btn-convert"
+              id="startConversionBtn"
+            >
+              🔄 Dönüştürmeyi Başlat
+            </button>
+          </div>
+
+          <!-- Conversion Progress -->
+          <div
+            class="conversion-progress-section"
+            id="conversionProgressSection"
+            style="display: none"
+          >
+            <div class="progress-header">
+              <h3>🔄 Dönüştürülüyor...</h3>
+              <button class="btn-ghost" id="cancelConversionBtn">İptal</button>
+            </div>
+
+            <!-- Overall Progress -->
+            <div class="overall-progress">
+              <div class="progress-info">
+                <span id="conversionStatus">Dosya 1/5 işleniyor...</span>
+                <span id="conversionPercent">0%</span>
+              </div>
+              <div class="progress-container">
+                <div
+                  class="progress-bar converter-progress"
+                  id="conversionProgressBar"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Current File -->
+            <div class="current-file-progress">
+              <span class="current-file-name" id="currentFileName"
+                >video.mp4</span
+              >
+              <div class="progress-container small">
+                <div
+                  class="progress-bar converter-progress"
+                  id="currentFileProgressBar"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conversion Complete -->
+          <div
+            class="conversion-complete"
+            id="conversionComplete"
+            style="display: none"
+          >
+            <div class="complete-header">
+              <span class="complete-icon-large">✅</span>
+              <h3>Dönüştürme Tamamlandı</h3>
+            </div>
+
+            <div class="complete-summary">
+              <div class="summary-item success">
+                <span class="summary-icon">✓</span>
+                <span class="summary-text"
+                  >Başarılı: <strong id="successCount">0</strong> dosya</span
+                >
+              </div>
+              <div
+                class="summary-item error"
+                id="failedSummary"
+                style="display: none"
+              >
+                <span class="summary-icon">✗</span>
+                <span class="summary-text"
+                  >Başarısız: <strong id="failedCount">0</strong> dosya</span
+                >
+              </div>
+            </div>
+
+            <!-- Failed Files List -->
+            <div
+              class="failed-files-list"
+              id="failedFilesList"
+              style="display: none"
+            >
+              <h4>Başarısız Dosyalar:</h4>
+              <ul id="failedFilesUl"></ul>
+            </div>
+
+            <div class="complete-actions">
+              <button class="btn-primary" id="openConvertedFolderBtn">
+                📂 Klasörü Aç
+              </button>
+              <button class="btn-ghost" id="newConversionBtn">
+                🔄 Yeni Dönüşüm
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Settings Overlay -->
+      <div
+        class="settings-overlay"
+        id="settingsOverlay"
+        style="display: none"
+      ></div>
+
+      <!-- Settings Panel -->
+      <div class="settings-panel" id="settingsPanel" style="display: none">
+        <div class="settings-header">
+          <h2>⚙️ Ayarlar</h2>
+          <button id="closeSettings" class="btn-ghost">×</button>
         </div>
+
+        <div class="settings-content">
+          <!-- Website Cookie Sync -->
+          <div class="setting-group">
+            <label>🍪 +18 Video Desteği</label>
+            <p class="setting-desc">
+              Yaş kısıtlamalı videolar için YouTube hesabınıza giriş yapın
+            </p>
+
+            <div class="cookie-sync-status" id="cookieSyncStatus">
+              <span class="cookie-icon">🔒</span>
+              <span id="cookieSyncText">Giriş yapılmadı</span>
+            </div>
+
+            <div class="cookie-sync-actions">
+              <button id="youtubeLoginBtn" class="btn-primary">
+                YouTube'a Giriş Yap
+              </button>
+              <button
+                id="refreshCookiesBtn"
+                class="btn-small"
+                style="display: flex; align-items: center; gap: 4px"
+              >
+                Çerezleri Yenile
+              </button>
+              <button id="importCookieBtn" class="btn-small btn-ghost" style="display: flex; align-items: center; gap: 4px">
+                Dosyadan Yükle
+              </button>
+              <button
+                id="deleteCookieBtn"
+                class="btn-small btn-ghost"
+                style="display: flex; align-items: center; gap: 4px; justify-content: center"
+              >
+                Çıkış Yap
+              </button>
+            </div>
+
+            <p class="setting-hint" style="margin-top: 8px">
+              Giriş yaptıktan sonra +18 videolar otomatik olarak
+              indirilebilir
+            </p>
+          </div>
+
+          <!-- Theme Selection -->
+          <div class="setting-group">
+            <label>🎨 Tema</label>
+            <p class="setting-desc">Uygulama görünümünü seçin</p>
+            <div class="theme-selector" id="themeSelector">
+              <button class="theme-option" data-theme="system">
+                <span class="theme-icon">💻</span>
+                <span class="theme-label">Sistem</span>
+              </button>
+              <button class="theme-option" data-theme="light">
+                <span class="theme-icon">☀️</span>
+                <span class="theme-label">Açık</span>
+              </button>
+              <button class="theme-option" data-theme="dark">
+                <span class="theme-icon">🌙</span>
+                <span class="theme-label">Koyu</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Download Path -->
+          <div class="setting-group">
+            <label>📁 İndirme Klasörü</label>
+            <div class="path-selector">
+              <input type="text" id="downloadPath" readonly />
+              <button id="selectPathBtn" class="btn-small">Değiştir</button>
+            </div>
+          </div>
+
+          <!-- Binary Status -->
+          <div class="setting-group">
+            <label>Bileşen Durumu</label>
+            <div class="binary-status" id="binaryStatusList"></div>
+            <div
+              class="binary-actions"
+              style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap"
+            >
+              <button
+                id="updateYtdlpBtn"
+                class="btn-small btn-primary"
+                style="display: none"
+              >
+                ⬆️ yt-dlp Güncelle
+              </button>
+              <button id="updateBinariesBtn" class="btn-small">
+                🔄 Tümünü Yeniden İndir
+              </button>
+            </div>
+            <p
+              class="ytdlp-update-info"
+              id="ytdlpUpdateInfo"
+              style="
+                display: none;
+                margin-top: 8px;
+                font-size: 12px;
+                color: #ffa500;
+              "
+            ></p>
+          </div>
+
+          <!-- App Info -->
+          <div class="setting-group">
+            <label>Uygulama Bilgisi</label>
+            <p class="app-version" id="appVersion">Sürüm: ...</p>
+            <p class="app-author">Yapımcı: Arda Mert Dedeoglu</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="renderer.js"></script>
-</body>
+  </body>
 </html>

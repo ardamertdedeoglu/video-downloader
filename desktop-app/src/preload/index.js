@@ -34,6 +34,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     downloadUpdate: () => ipcRenderer.invoke('download-update'),
     installUpdate: () => ipcRenderer.invoke('install-update'),
     
+    // Theme
+    getSystemTheme: () => ipcRenderer.invoke('get-system-theme'),
+    onThemeChanged: (callback) => {
+        ipcRenderer.on('theme-changed', (event, theme) => callback(theme));
+    },
+    
     // Event listeners
     onDownloadProgress: (callback) => {
         ipcRenderer.on('download-progress', (event, progress) => callback(progress));
